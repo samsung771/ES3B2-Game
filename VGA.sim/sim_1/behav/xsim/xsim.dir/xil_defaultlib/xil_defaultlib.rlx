@@ -1,9 +1,0 @@
-0.7
-2020.2
-May 22 2024
-19:03:11
-C:/Users/samdl/ES3B2/VGA/VGA.gen/sources_1/ip/clk_wiz_0/clk_wiz_0.v,1772423018,verilog,,C:/Users/samdl/ES3B2/VGA/VGA.srcs/sources_1/new/vga_out.v,,clk_wiz_0,,,../../../../VGA.ip_user_files/ipstatic,,,,,
-C:/Users/samdl/ES3B2/VGA/VGA.gen/sources_1/ip/clk_wiz_0/clk_wiz_0_clk_wiz.v,1772423018,verilog,,C:/Users/samdl/ES3B2/VGA/VGA.gen/sources_1/ip/clk_wiz_0/clk_wiz_0.v,,clk_wiz_0_clk_wiz,,,../../../../VGA.ip_user_files/ipstatic,,,,,
-C:/Users/samdl/ES3B2/VGA/VGA.sim/sim_1/behav/xsim/glbl.v,1708598507,verilog,,,,glbl,,,,,,,,
-C:/Users/samdl/ES3B2/VGA/VGA.srcs/sim_1/new/tb_vga.v,1772424214,verilog,,,,tb_vga,,,../../../../VGA.ip_user_files/ipstatic,,,,,
-C:/Users/samdl/ES3B2/VGA/VGA.srcs/sources_1/new/vga_out.v,1772425711,verilog,,C:/Users/samdl/ES3B2/VGA/VGA.srcs/sim_1/new/tb_vga.v,,vga_out,,,../../../../VGA.ip_user_files/ipstatic,,,,,
