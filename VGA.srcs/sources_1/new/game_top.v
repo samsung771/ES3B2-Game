@@ -48,12 +48,12 @@ module game_top(
         .clk_in1(clk)
         );
     
-    //30Hz clock div
+    //60Hz clock div
     always @ (posedge clk)  begin
         if(!rst)
             clk_div <= 0;
         else begin
-            if (clk_div == 21'd3333333) begin
+            if (clk_div == 21'd1666666) begin
                 clk_div <= 0;
                 game_clk <= !game_clk;
             end else 
