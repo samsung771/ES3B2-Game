@@ -92,6 +92,8 @@ module game_top(
     wire [10:0] curr_y;
     
     drawcon drawcon_inst(
+        .clk(pixclk),
+        .rst(rst),
         .curr_x(curr_x),
         .curr_y(curr_y),
         .draw_r(draw_r),

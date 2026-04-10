@@ -10,11 +10,11 @@
 `define BG_G 4'he
 `define BG_B 4'hd
 
-`define BLK_R 4'h9
-`define BLK_G 4'ha
-`define BLK_B 4'h1
+//`define BLK_R 4'h9
+//`define BLK_G 4'ha
+//`define BLK_B 4'h1
 
-`define BLK_SIZE 10'd32
+`define BLK_SIZE 10'd256
 
 //Button Macros
 `define LBTN 4'b0010
