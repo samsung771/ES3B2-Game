@@ -35,15 +35,24 @@ module drawcon(
     
     reg [3:0] blk_r, blk_g, blk_b;
 
-    reg [3:0] bg_r = `BORDER_R;
-    reg [3:0] bg_g = `BORDER_G;
-    reg [3:0] bg_b = `BORDER_B;
+    wire [3:0] bg_r, bg_g, bg_b;
 
     
     //parameter IMG_SIZE = 100;
     reg [13:0] addr = 0; //14 bit address
     wire [11:0] rom_pixel;
     
+    levelrenderer levelrenderer_inst (
+        .clk(clk),
+        .rst(rst),
+        .curr_x(curr_x),
+        .curr_y(curr_y),
+        .draw_r(bg_r),
+        .draw_g(bg_g),
+        .draw_b(bg_b)
+    );
+    
+   
     //Draw inside border
     always @ (posedge clk) begin
         if (!rst) begin
@@ -52,13 +61,6 @@ module drawcon(
             blk_b <= 4'b0000;
             addr <= 0;
         end else if (
-        (curr_x >= `BORDER_SIZE) &&
-        (curr_x <= (`RESOLUTION_X-`BORDER_SIZE)) && 
-        (curr_y >= `BORDER_SIZE) && 
-        (curr_y <= (`RESOLUTION_Y-`BORDER_SIZE))
-        ) begin
-            //If pointer is within block
-            if (
             (curr_x >= blkpos_x) && 
             (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= blkpos_y) && 
@@ -75,12 +77,7 @@ module drawcon(
                 //else increment
                 else
                     addr <= addr + 1;
-            end else begin
-                blk_r <= `BG_R;
-                blk_g <= `BG_G;
-                blk_b <= `BG_B;
-            end
-            
+                
         end else begin
             blk_r <= 4'b0000;
             blk_g <= 4'b0000;
