@@ -52,22 +52,22 @@ module drawcon(
         .draw_b(bg_b)
     );
     
-    reg[21:0] clk_div;
-    reg game_clk;
-    //60Hz clock div
+    reg[23:0] clk_div;
+    reg anim_clk;
+    //~10Hz clock div
     always @ (posedge clk)  begin
         if(!rst)
             clk_div <= 0;
         else begin
-            if (clk_div == 22'd33333333) begin
+            if (clk_div == 24'd10000000) begin
                 clk_div <= 0;
-                game_clk <= !game_clk;
+                anim_clk <= !anim_clk;
             end else 
                 clk_div <= clk_div+1;
         end
     end
 
-    always @ (posedge game_clk) begin
+    always @ (posedge anim_clk) begin
         if (addrOffset < 'd12288) 
             addrOffset <= addrOffset + 'd4096;
         else
