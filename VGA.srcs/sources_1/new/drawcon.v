@@ -60,9 +60,9 @@ module drawcon(
             //If pointer is within block
             if (
             (curr_x >= blkpos_x) && 
-            (curr_x <= blkpos_x + `BLK_SIZE) &&
+            (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= blkpos_y) && 
-            (curr_y <= blkpos_y + `BLK_SIZE)
+            (curr_y < blkpos_y + `BLK_SIZE)
             ) begin
                 //set rgb to sprite
                 blk_r <= rom_pixel[11:8];
@@ -88,9 +88,9 @@ module drawcon(
         end
     end
     
-    assign draw_r = (blk_r != 4'b0000) ? blk_r : bg_r;    
-    assign draw_g = (blk_g != 4'b0000) ? blk_g : bg_g;
-    assign draw_b = (blk_b != 4'b0000) ? blk_b : bg_b;
+    assign draw_r = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_r : bg_r;    
+    assign draw_g = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_g : bg_g;
+    assign draw_b = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_b : bg_b;
     
     blk_mem_gen_0 inst
     (

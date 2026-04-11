@@ -14,7 +14,7 @@
 //`define BLK_G 4'ha
 //`define BLK_B 4'h1
 
-`define BLK_SIZE 10'd256
+`define BLK_SIZE 10'd64
 
 //Button Macros
 `define LBTN 4'b0010
