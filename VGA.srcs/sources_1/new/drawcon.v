@@ -38,8 +38,8 @@ module drawcon(
     wire [3:0] bg_r, bg_g, bg_b;
 
     
-    //parameter IMG_SIZE = 100;
-    reg [13:0] addr = 0; //14 bit address
+    reg [14:0] addr = 0; //15 bit address
+    reg [14:0] addrOffset = 0; //15 bit address
     wire [11:0] rom_pixel;
     
     levelrenderer levelrenderer_inst (
@@ -52,7 +52,28 @@ module drawcon(
         .draw_b(bg_b)
     );
     
-   
+    reg[21:0] clk_div;
+    reg game_clk;
+    //60Hz clock div
+    always @ (posedge clk)  begin
+        if(!rst)
+            clk_div <= 0;
+        else begin
+            if (clk_div == 22'd33333333) begin
+                clk_div <= 0;
+                game_clk <= !game_clk;
+            end else 
+                clk_div <= clk_div+1;
+        end
+    end
+
+    always @ (posedge game_clk) begin
+        if (addrOffset < 'd12288) 
+            addrOffset <= addrOffset + 'd4096;
+        else
+            addrOffset <= 0;
+    end  
+    
     //Draw inside border
     always @ (posedge clk) begin
         if (!rst) begin
@@ -73,7 +94,7 @@ module drawcon(
                 
                 //set address to 0 at start
                 if ((curr_x == blkpos_x) && (curr_y == blkpos_y))
-                    addr <= 0;
+                    addr <= addrOffset;
                 //else increment
                 else
                     addr <= addr + 1;
