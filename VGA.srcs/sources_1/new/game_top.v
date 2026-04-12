@@ -41,12 +41,13 @@ module game_top(
     reg [10:0] blkpos_x = `RESOLUTION_X/2;
     reg [10:0] blkpos_y = `RESOLUTION_Y/2;
     
-    clk_wiz_0 inst (
+    clk_wiz_0 pix (
         // Clock out ports  
         .clk_out1(pixclk),
         // Clock in ports
         .clk_in1(clk)
         );
+  
     
     //60Hz clock div
     always @ (posedge clk)  begin
