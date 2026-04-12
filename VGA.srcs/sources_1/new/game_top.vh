@@ -1,20 +1,18 @@
 `define RESOLUTION_X 11'd1440
 `define RESOLUTION_Y 11'd900
-`define BORDER_SIZE 11'd10
+`define BORDER_TOP 11'd100
+`define BORDER_BTM 11'd32
 
-`define BORDER_R 4'hb
-`define BORDER_G 4'ha
-`define BORDER_B 4'h9
+`define BORDER_R 4'h0
+`define BORDER_G 4'h0
+`define BORDER_B 4'h0
 
-`define BG_R 4'he
-`define BG_G 4'he
-`define BG_B 4'hd
+`define BG_R 4'h5
+`define BG_G 4'h9
+`define BG_B 4'hf
 
-//`define BLK_R 4'h9
-//`define BLK_G 4'ha
-//`define BLK_B 4'h1
-
-`define BLK_SIZE 10'd64
+`define BLK_SIZE 7'd64
+`define MEM_OFFSET 15'd4096
 
 //Button Macros
 `define LBTN 4'b0010
