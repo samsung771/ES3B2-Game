@@ -41,12 +41,13 @@ module game_top(
     reg [10:0] blkpos_x = `RESOLUTION_X/2;
     reg [10:0] blkpos_y = `RESOLUTION_Y/2;
     
-    clk_wiz_0 inst (
+    clk_wiz_0 pix (
         // Clock out ports  
         .clk_out1(pixclk),
         // Clock in ports
         .clk_in1(clk)
         );
+  
     
     //60Hz clock div
     always @ (posedge clk)  begin
@@ -69,16 +70,16 @@ module game_top(
         else begin
             case (btn[4:1]) 
             `LBTN:
-                if (blkpos_x > `BORDER_SIZE)
+                if (blkpos_x > 0)
                     blkpos_x <= blkpos_x -5;
             `RBTN:
-                if (blkpos_x < (`RESOLUTION_X - `BORDER_SIZE - `BLK_SIZE))
+                if (blkpos_x < (`RESOLUTION_X - `BLK_SIZE))
                     blkpos_x <= blkpos_x +5;
             `UBTN:
-                if (blkpos_y > `BORDER_SIZE)
+                if (blkpos_y > `BORDER_TOP)
                     blkpos_y <= blkpos_y -5;
             `DBTN: 
-                if (blkpos_y < (`RESOLUTION_Y - `BORDER_SIZE - `BLK_SIZE))
+                if (blkpos_y < (`RESOLUTION_Y - `BORDER_BTM - `BLK_SIZE))
                     blkpos_y <= blkpos_y +5;
             endcase
         end 

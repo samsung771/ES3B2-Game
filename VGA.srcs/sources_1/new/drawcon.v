@@ -35,14 +35,44 @@ module drawcon(
     
     reg [3:0] blk_r, blk_g, blk_b;
 
-    reg [3:0] bg_r = `BORDER_R;
-    reg [3:0] bg_g = `BORDER_G;
-    reg [3:0] bg_b = `BORDER_B;
+    wire [3:0] bg_r, bg_g, bg_b;
 
     
-    //parameter IMG_SIZE = 100;
-    reg [13:0] addr = 0; //14 bit address
+    reg [14:0] addr = 0; //15 bit address
+    reg [14:0] addrOffset = 0; //15 bit address
     wire [11:0] rom_pixel;
+    
+    levelrenderer levelrenderer_inst (
+        .clk(clk),
+        .rst(rst),
+        .curr_x(curr_x),
+        .curr_y(curr_y),
+        .draw_r(bg_r),
+        .draw_g(bg_g),
+        .draw_b(bg_b)
+    );
+    
+    reg[23:0] clk_div;
+    reg anim_clk;
+    //~10Hz clock div
+    always @ (posedge clk)  begin
+        if(!rst)
+            clk_div <= 0;
+        else begin
+            if (clk_div == 24'd10000000) begin
+                clk_div <= 0;
+                anim_clk <= !anim_clk;
+            end else 
+                clk_div <= clk_div+1;
+        end
+    end
+
+    always @ (posedge anim_clk) begin
+        if (addrOffset < 'd12288) 
+            addrOffset <= addrOffset + 'd4096;
+        else
+            addrOffset <= 0;
+    end  
     
     //Draw inside border
     always @ (posedge clk) begin
@@ -52,17 +82,10 @@ module drawcon(
             blk_b <= 4'b0000;
             addr <= 0;
         end else if (
-        (curr_x >= `BORDER_SIZE) &&
-        (curr_x <= (`RESOLUTION_X-`BORDER_SIZE)) && 
-        (curr_y >= `BORDER_SIZE) && 
-        (curr_y <= (`RESOLUTION_Y-`BORDER_SIZE))
-        ) begin
-            //If pointer is within block
-            if (
             (curr_x >= blkpos_x) && 
-            (curr_x <= blkpos_x + `BLK_SIZE) &&
+            (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= blkpos_y) && 
-            (curr_y <= blkpos_y + `BLK_SIZE)
+            (curr_y < blkpos_y + `BLK_SIZE)
             ) begin
                 //set rgb to sprite
                 blk_r <= rom_pixel[11:8];
@@ -71,16 +94,11 @@ module drawcon(
                 
                 //set address to 0 at start
                 if ((curr_x == blkpos_x) && (curr_y == blkpos_y))
-                    addr <= 0;
+                    addr <= addrOffset;
                 //else increment
                 else
                     addr <= addr + 1;
-            end else begin
-                blk_r <= `BG_R;
-                blk_g <= `BG_G;
-                blk_b <= `BG_B;
-            end
-            
+                
         end else begin
             blk_r <= 4'b0000;
             blk_g <= 4'b0000;
@@ -88,9 +106,9 @@ module drawcon(
         end
     end
     
-    assign draw_r = (blk_r != 4'b0000) ? blk_r : bg_r;    
-    assign draw_g = (blk_g != 4'b0000) ? blk_g : bg_g;
-    assign draw_b = (blk_b != 4'b0000) ? blk_b : bg_b;
+    assign draw_r = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_r : bg_r;    
+    assign draw_g = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_g : bg_g;
+    assign draw_b = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_b : bg_b;
     
     blk_mem_gen_0 inst
     (
