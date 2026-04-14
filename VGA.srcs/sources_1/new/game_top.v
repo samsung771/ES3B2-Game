@@ -89,6 +89,8 @@ module game_top(
     wire [3:0] draw_g;
     wire [3:0] draw_b;
     
+    
+    
     wire [10:0] curr_x;
     wire [10:0] curr_y;
     
@@ -97,13 +99,16 @@ module game_top(
         .rst(rst),
         .curr_x(curr_x),
         .curr_y(curr_y),
-        .draw_r(draw_r),
-        .draw_g(draw_g),
-        .draw_b(draw_b),
+        .draw_r(write_r),
+        .draw_g(write_g),
+        .draw_b(write_b),
         .blkpos_x(blkpos_x),
         .blkpos_y(blkpos_y)
         );
-
+    
+    
+    
+    
     vga_out vga_inst( 
         .clk(pixclk),
         .rst(rst),

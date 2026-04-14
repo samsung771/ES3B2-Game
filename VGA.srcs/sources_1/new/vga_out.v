@@ -49,8 +49,6 @@ module vga_out(
     wire col_end = (vcount == `VGA_SIZE_Y);
     
     
-
-    
     assign hsync = ((hcount >= 11'd0) && (hcount <= 11'd151)); 
     assign vsync = ((vcount >= 10'd0) && (vcount <= 10'd2)); 
     

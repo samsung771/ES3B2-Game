@@ -38,10 +38,13 @@ module drawcon(
     wire [3:0] bg_r, bg_g, bg_b;
 
     
-    reg [14:0] addr = 0; //15 bit address
-    reg [14:0] addrOffset = 0; //15 bit address
+    reg [12:0] addr = 0; //13 bit address
+    reg [12:0] addrOffset = 0; //13 bit address
     wire [11:0] rom_pixel;
     
+   
+    
+   
     levelrenderer levelrenderer_inst (
         .clk(clk),
         .rst(rst),
@@ -52,7 +55,11 @@ module drawcon(
         .draw_b(bg_b)
     );
     
-    reg[23:0] clk_div;
+    
+   
+    
+    // ------------- Animation clock divider
+    reg [23:0] clk_div;
     reg anim_clk;
     //~10Hz clock div
     always @ (posedge clk)  begin
@@ -68,11 +75,18 @@ module drawcon(
     end
 
     always @ (posedge anim_clk) begin
-        if (addrOffset < 'd12288) 
-            addrOffset <= addrOffset + 'd4096;
+        if (addrOffset < (`MEM_OFFSET * 3)) 
+            addrOffset <= addrOffset + `MEM_OFFSET;
         else
             addrOffset <= 0;
-    end  
+    end
+    
+    
+    // ----------------- Rendering
+    wire [8:0] pix_x, pix_y;
+    
+    assign pix_x = curr_x >> 2;  
+    assign pix_y = curr_y >> 2;
     
     //Draw inside border
     always @ (posedge clk) begin
@@ -87,17 +101,23 @@ module drawcon(
             (curr_y >= blkpos_y) && 
             (curr_y < blkpos_y + `BLK_SIZE)
             ) begin
-                //set rgb to sprite
-                blk_r <= rom_pixel[11:8];
-                blk_g <= rom_pixel[7:4];
-                blk_b <= rom_pixel[3:0];
+                if ((curr_x == blkpos_x) || (curr_y == blkpos_y)) begin
+                    blk_r <= 4'hf;
+                    blk_g <= 4'h0;
+                    blk_b <= 4'h0;
+                end else begin
+                    //set rgb to sprite
+                    blk_r <= rom_pixel[11:8];
+                    blk_g <= rom_pixel[7:4];
+                    blk_b <= rom_pixel[3:0];
+                end
                 
-                //set address to 0 at start
                 if ((curr_x == blkpos_x) && (curr_y == blkpos_y))
                     addr <= addrOffset;
-                //else increment
                 else
                     addr <= addr + 1;
+                
+                    
                 
         end else begin
             blk_r <= 4'b0000;
@@ -116,5 +136,6 @@ module drawcon(
     .addra(addr),
     .douta(rom_pixel)   
     );
+    
     
 endmodule
