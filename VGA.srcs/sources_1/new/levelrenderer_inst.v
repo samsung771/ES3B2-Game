@@ -41,7 +41,7 @@ module levelrenderer(
     wire [5:0] blkcounter_x, blkcounter_y;
     wire [5:0] tilecounter_x, tilecounter_y;
     
-    assign blkcounter_x = curr_x[5:0];
+    assign blkcounter_x = curr_x + 3;
     assign blkcounter_y = curr_y + 11'd28; 
     
 
@@ -49,7 +49,7 @@ module levelrenderer(
     wire [7:0] tile;
     
 
-    assign tilecounter_x = curr_x[10:6];
+    assign tilecounter_x = (curr_x+6) >> 6;
     assign tilecounter_y = (curr_y-100) >> 6;
      
     
@@ -66,29 +66,24 @@ module levelrenderer(
         ) begin
             
             tileaddr <= tilecounter_x + (tilecounter_y * 6'd23);
-            if (blkcounter_x == 0 || blkcounter_y == 0) begin
+            /*
+            if (curr_x[5:0] == 0 || ((curr_y + 11'd28)>> 6) == 0) begin
                 bg_r <= 4'h0;  
                 bg_g <= 4'hf;
                 bg_b <= 4'h0;
             end
             
-            
-            else if (tile == 0) begin
-                bg_r <= `BG_R;
-                bg_g <= `BG_G;
-                bg_b <= `BG_B;
-                
-            end else begin
-            
+            else begin
+            */
                 //set rgb to sprite
                 bg_r <= rom_pixel[11:8];
                 bg_g <= rom_pixel[7:4];
                 bg_b <= rom_pixel[3:0];
                 
                 pix_offset <= blkcounter_x + (blkcounter_y * 16'd64);
-                addr_offset <= (tile-1) * `MEM_OFFSET;
+                addr_offset <= tile * `MEM_OFFSET;
                 addr <= pix_offset + addr_offset;
-            end
+            //end
         end else begin
             bg_r <= `BORDER_R;
             bg_g <= `BORDER_G;
