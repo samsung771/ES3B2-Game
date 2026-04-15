@@ -14,6 +14,7 @@
 `define BLK_SIZE 7'd64
 `define MEM_OFFSET 15'd4096
 `define LEVEL_SIZE 6'd23
+`define LEVEL_HEIGHT 6'd12
 
 
 //Button Macros

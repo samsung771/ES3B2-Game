@@ -36,54 +36,24 @@ module game_top(
     
     wire pixclk;
         
-    reg[20:0] clk_div;
-    reg game_clk;
-    reg [10:0] blkpos_x = `RESOLUTION_X/2;
-    reg [10:0] blkpos_y = `RESOLUTION_Y/2;
+    wire [10:0] playerpos_x;
+    wire [10:0] playerpos_y;
+    
     
     clk_wiz_0 pix (
-        // Clock out ports  
-        .clk_out1(pixclk),
-        // Clock in ports
-        .clk_in1(clk)
-        );
+    // Clock out ports  
+    .clk_out1(pixclk),
+    // Clock in ports
+    .clk_in1(clk)
+    );
   
-    
-    //60Hz clock div
-    always @ (posedge clk)  begin
-        if(!rst)
-            clk_div <= 0;
-        else begin
-            if (clk_div == 21'd1666666) begin
-                clk_div <= 0;
-                game_clk <= !game_clk;
-            end else 
-                clk_div <= clk_div+1;
-        end
-    end
-    
-    always @ (posedge game_clk)  begin
-        if (btn[0]) begin 
-            blkpos_x <= `RESOLUTION_X/2;
-            blkpos_y <= `RESOLUTION_Y/2;
-        end 
-        else begin
-            case (btn[4:1]) 
-            `LBTN:
-                if (blkpos_x > 0)
-                    blkpos_x <= blkpos_x -5;
-            `RBTN:
-                if (blkpos_x < (`RESOLUTION_X - `BLK_SIZE))
-                    blkpos_x <= blkpos_x +5;
-            `UBTN:
-                if (blkpos_y > `BORDER_TOP)
-                    blkpos_y <= blkpos_y -5;
-            `DBTN: 
-                if (blkpos_y < (`RESOLUTION_Y - `BORDER_BTM - `BLK_SIZE))
-                    blkpos_y <= blkpos_y +5;
-            endcase
-        end 
-    end
+    player_controller player_inst (
+    .clk(clk),
+    .rst(rst),
+    .btn(btn),
+    .playerpos_x(playerpos_x),
+    .playerpos_y(playerpos_y)
+    );
     
     wire [3:0] draw_r;
     wire [3:0] draw_g;
@@ -100,8 +70,8 @@ module game_top(
         .draw_r(draw_r),
         .draw_g(draw_g),
         .draw_b(draw_b),
-        .blkpos_x(blkpos_x),
-        .blkpos_y(blkpos_y)
+        .blkpos_x(playerpos_x),
+        .blkpos_y(playerpos_y)
         );
 
     vga_out vga_inst( 
