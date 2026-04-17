@@ -60,7 +60,7 @@ module levelrenderer(
     
     // ----------------------------- Level Memory Setup ----------------------------- 
     //Memory address for tiled level
-    reg [8:0] level_addr = 0;
+    reg [9:0] level_addr = 0;
     //Tile ID from level memory
     wire [7:0] tile;
   
