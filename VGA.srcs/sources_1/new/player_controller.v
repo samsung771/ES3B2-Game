@@ -23,27 +23,36 @@
 
 module player_controller(
     input clk,
+    input game_clk,
     input rst,
     input [4:0] btn,
+    input [15:0] cam_x,
     output [10:0] playerpos_x,
-    output [10:0] playerpos_y
+    output [10:0] playerpos_y,
+    output [15:0] globalpos,
+    output signed [5:0] vel_out
     );
     
     
     // ------------------------- Player Movement Variables -------------------------
-    reg [10:0] pos_x = 300;
+    reg [12:0] global_pos_x = 300;
     reg [10:0] pos_y = 100;
     
     //Assign output wires to x and y registers
-    assign playerpos_x = pos_x;
+    //Output players position on the screen
+    assign playerpos_x = global_pos_x - cam_x;
     //+100 to account for border
     assign playerpos_y = pos_y + 100;
+    
+    assign globalpos = global_pos_x;
     
     wire signed [5:0] acc_x;
     wire signed [5:0] acc_y;
     
     reg signed [5:0] vel_x = 0;
     reg signed [5:0] vel_y = 0;
+    
+    assign vel_out = vel_x;
     
     
     // ----------------------------- Level Memory Setup ----------------------------- 
@@ -63,7 +72,7 @@ module player_controller(
     
     // ---------------------------- Update Collision Map -----------------------------
     //2D array of collidable tiles on the screen
-    reg collision_map [0:(`SCREEN_SIZE - 1)][0:(`LEVEL_HEIGHT - 1)];
+    reg collision_map [0:(`LEVEL_SIZE-1)][0:(`LEVEL_HEIGHT-1)];
     
     reg[6:0] xcounter = 0;
     reg[6:0] ycounter = 0;
@@ -93,7 +102,7 @@ module player_controller(
             collision_map[xcounter][ycounter] <= (tile >= 8'd11);
             
             //Loop through X and Y positions
-            if (xcounter == (`SCREEN_SIZE - 1)) begin
+            if (xcounter == (`LEVEL_SIZE - 1)) begin
                 xcounter <= 0;
                 
                 if (ycounter == `LEVEL_HEIGHT-1) 
@@ -116,11 +125,12 @@ module player_controller(
     always @ (posedge clk)  begin
         if(!rst) 
             grounded <= 0;
-        else
+        else begin
             grounded <= (
-                collision_map[(pos_x) >> 6][(pos_y + `BLK_SIZE + 5) >> 6] || 
-                collision_map[(pos_x+ `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
+                collision_map[(global_pos_x) >> 6][(pos_y + `BLK_SIZE + 5) >> 6] || 
+                collision_map[(global_pos_x+ `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
             );
+        end
     end
     
     
@@ -136,16 +146,11 @@ module player_controller(
     );
     
       
-    //60Hz game clock for position updates
-    wire game_clk;
-    
-    game_clk_div (
-    .clk(clk),
-    .game_clk(game_clk)
-    );
-    
     // --------------------------------- Update Y axis ---------------------------------
     always @ (posedge game_clk)  begin
+        if(!rst) 
+            pos_y <= 100;
+        else begin
         /*
         // ------------------------ CHECK SCREEN BOUNDARIES ------------------------
         //If pos_y overflows so off screen left reset to 1
@@ -156,8 +161,8 @@ module player_controller(
         */
         //If moving DOWN and next position overlaps with collidable block
         if (vel_y > 0 && (
-        collision_map[(pos_x) >> 6][(pos_y + `BLK_SIZE + vel_y) >> 6] || 
-        collision_map[(pos_x+ `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + vel_y) >> 6]
+        collision_map[(global_pos_x) >> 6][(pos_y + `BLK_SIZE + vel_y) >> 6] || 
+        collision_map[(global_pos_x+ `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + vel_y) >> 6]
         )) begin
             //If player is going to collide, stop them 
             //and set their position to above the block
@@ -167,8 +172,8 @@ module player_controller(
         
         //If moving UP and next position overlaps with collidable block
         else if (vel_y < 0 && (
-        collision_map[(pos_x) >> 6][(pos_y + vel_y - 64) >> 6] || 
-        collision_map[(pos_x+ `BLK_SIZE -1) >> 6][(pos_y + vel_y - 64) >> 6]
+        collision_map[(global_pos_x) >> 6][(pos_y + vel_y - 64) >> 6] || 
+        collision_map[(global_pos_x + `BLK_SIZE -1) >> 6][(pos_y + vel_y - 64) >> 6]
         )) begin
             //If player is going to collide, stop them 
             //and set their position to below the block
@@ -192,48 +197,53 @@ module player_controller(
             else 
                 pos_y <= pos_y + vel_y;
         end
+        end
     end
     
     
     
     // --------------------------------- Update X axis ---------------------------------
     always @ (posedge game_clk)  begin
+        if(!rst) 
+            global_pos_x <= 300;
+        else begin
         // ------------------------ CHECK SCREEN BOUNDARIES ------------------------
+        /*
         //If pos_x overflows so off screen left reset to 1
         if (vel_x < 0 && (pos_x + vel_x - 64) > 1600) begin 
             vel_x <= 0;
-            pos_x <= 1;
+            global_pos_x <= 1;
         end
         
         //If pos_x off screen stop
         else if (pos_x + `BLK_SIZE > `RESOLUTION_X) begin
             vel_x <= 0;
-            pos_x <= `RESOLUTION_X - `BLK_SIZE - 1;
+            global_pos_x <= `RESOLUTION_X - `BLK_SIZE - 1;
         end
-        
+        */
         
         // --------------------------- CHECK COLLISIONS ---------------------------
         //If moving LEFT and next position overlaps with collidable block
-        else if (vel_x < 0 && (
-        collision_map[(pos_x + vel_x - 64) >> 6][(pos_y) >> 6] || 
-        collision_map[(pos_x + vel_x - 64) >> 6][(pos_y + `BLK_SIZE - 1) >> 6]
+        if (vel_x < 0 && (
+        collision_map[(global_pos_x + vel_x - 64) >> 6][(pos_y) >> 6] || 
+        collision_map[(global_pos_x + vel_x - 64) >> 6][(pos_y + `BLK_SIZE - 1) >> 6]
         )) begin
             //If player is going to collide, stop them 
             vel_x <= 0;
             //Set their position to the right of the block that player collided with
-            //Position is & 11'b11111000000 to find block edge
-            pos_x <= ((pos_x + vel_x - 64 + `BLK_SIZE) & 11'b11111000000) + 1;
+            //Position is & 11'b11111100000 to find block edge
+            global_pos_x <= ((global_pos_x + vel_x - 64 + `BLK_SIZE) & 15'b111111111000000) + 1;
         end
         
         //If moving RIGHT and next position overlaps with collidable block
         else if (vel_x > 0 && (
-        collision_map[(pos_x + `BLK_SIZE + vel_x) >> 6][(pos_y) >> 6] || 
-        collision_map[(pos_x + `BLK_SIZE + vel_x) >> 6][(pos_y + `BLK_SIZE - 1) >> 6]
+        collision_map[(global_pos_x + `BLK_SIZE + vel_x) >> 6][(pos_y) >> 6] || 
+        collision_map[(global_pos_x + `BLK_SIZE + vel_x) >> 6][(pos_y + `BLK_SIZE - 1) >> 6]
         )) begin
             //If player is going to collide, stop them 
             //and set their position to the left of the block
             vel_x <= 0;
-            pos_x <= ((pos_x + vel_x) & 11'b11111000000) - 1;
+            global_pos_x <= ((global_pos_x + vel_x) & 15'b111111111000000) - 1;
         end
         
         
@@ -250,11 +260,13 @@ module player_controller(
             //Update position
             if (vel_x < 0)
                 //-64 to convert from 2s complement signed to unsigned
-                pos_x <= pos_x + vel_x - 64; 
+                global_pos_x <= global_pos_x + vel_x - 64; 
             else 
-                pos_x <= pos_x + vel_x;
+                global_pos_x <= global_pos_x + vel_x;
+        end
         end
     end
     
+   
     
 endmodule

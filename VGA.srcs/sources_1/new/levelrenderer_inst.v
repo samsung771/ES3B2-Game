@@ -26,6 +26,7 @@ module levelrenderer(
         input rst,
         input [10:0] curr_x,
         input [10:0] curr_y,
+        input [15:0] cam_x,
         output [3:0] draw_r,
         output [3:0] draw_g,
         output [3:0] draw_b
@@ -78,16 +79,16 @@ module levelrenderer(
     
     //Counters are truncated to 6 bits as a quick MOD 64
     // +3 offset to account for memory latency
-    assign pixcounter_x = curr_x + 3;
+    assign pixcounter_x = curr_x + cam_x + 3;
     // +28 offset to line up with top border
     assign pixcounter_y = curr_y + 11'd28; 
     
     //Tile X and Y positions 
-    wire [5:0] tilecounter_x, tilecounter_y;
+    wire [6:0] tilecounter_x, tilecounter_y;
     
     //Counters are bitshifted right by 6 as quick DIV 64
     // +6 offset to account for combined memory latency
-    assign tilecounter_x = (curr_x+6) >> 6;
+    assign tilecounter_x = (curr_x + cam_x + 6) >> 6;
     // -100 offset to line up with top border
     assign tilecounter_y = (curr_y-100) >> 6;
      

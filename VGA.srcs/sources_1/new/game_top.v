@@ -38,21 +38,44 @@ module game_top(
         
     wire [10:0] playerpos_x;
     wire [10:0] playerpos_y;
+    wire [15:0] camerapos_x;
+    wire [15:0] globalpos;
     
     
     clk_wiz_0 pix (
-    // Clock out ports  
     .clk_out1(pixclk),
-    // Clock in ports
     .clk_in1(clk)
     );
-  
+    
+    
+    //60Hz game clock for position updates
+    wire game_clk;
+    
+    game_clk_div (
+        .clk(clk),
+        .game_clk(game_clk)
+    );
+    
+    wire signed [5:0] vel_x;
+    
+    camera_controller camera_inst (
+        .clk(clk),
+        .rst(rst),
+        .playerpos_x(globalpos),
+        .vel_x(vel_x),
+        .camerapos_x(camerapos_x)
+    );
+    
     player_controller player_inst (
-    .clk(clk),
-    .rst(rst),
-    .btn(btn),
-    .playerpos_x(playerpos_x),
-    .playerpos_y(playerpos_y)
+        .clk(clk),
+        .game_clk(game_clk),
+        .rst(rst),
+        .btn(btn),
+        .cam_x(camerapos_x),
+        .playerpos_x(playerpos_x),
+        .playerpos_y(playerpos_y),
+        .globalpos(globalpos),
+        .vel_out(vel_x)
     );
     
     wire [3:0] draw_r;
@@ -67,11 +90,12 @@ module game_top(
         .rst(rst),
         .curr_x(curr_x),
         .curr_y(curr_y),
+        .cam_x(camerapos_x),
         .draw_r(draw_r),
         .draw_g(draw_g),
         .draw_b(draw_b),
-        .blkpos_x(playerpos_x),
-        .blkpos_y(playerpos_y)
+        .playerpos_x(globalpos),
+        .playerpos_y(playerpos_y)
         );
 
     vga_out vga_inst( 

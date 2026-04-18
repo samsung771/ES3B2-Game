@@ -5,9 +5,9 @@
 `define BORDER_TOP 11'd100
 `define BORDER_BTM 11'd32
 
-`define BORDER_R 4'h1
-`define BORDER_G 4'h1
-`define BORDER_B 4'h1
+`define BORDER_R 4'hd
+`define BORDER_G 4'hb
+`define BORDER_B 4'ha
 
 `define BG_R 4'h5
 `define BG_G 4'h9
@@ -22,7 +22,7 @@
 `define LEVEL_SIZE 10'd72
 `define LEVEL_HEIGHT 6'd12
 //Screen width in tiles
-`define SCREEN_SIZE 6'd23
+`define SCREEN_SIZE 6'd24
 
 //Button Macros
 `define LBTN 4'b0010
@@ -35,7 +35,7 @@
 `define X_AIR_ACCELERATION 1
 `define JUMP_ACCELERATION 25
 `define GRAVITY 2
-`define MAX_SPEED_X 16
+`define MAX_SPEED_X 10
 `define MAX_SPEED_Y 25
 
 
