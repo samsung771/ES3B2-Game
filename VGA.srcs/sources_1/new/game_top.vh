@@ -1,3 +1,4 @@
+//Screen Resolutions
 `define RESOLUTION_X 11'd1440
 `define RESOLUTION_Y 11'd900
 
@@ -5,13 +6,10 @@
 `define BORDER_TOP 11'd100
 `define BORDER_BTM 11'd32
 
-`define BORDER_R 4'hd
-`define BORDER_G 4'hb
-`define BORDER_B 4'ha
-
-`define BG_R 4'h5
-`define BG_G 4'h9
-`define BG_B 4'hf
+//Border colour
+`define BORDER_R 4'h0
+`define BORDER_G 4'h0
+`define BORDER_B 4'h0
 
 //Tile dimensions in pixels
 `define BLK_SIZE 7'd64
@@ -33,10 +31,14 @@
 //Player Movement
 `define X_ACCELERATION 2
 `define X_AIR_ACCELERATION 1
-`define JUMP_ACCELERATION 25
+`define JUMP_ACCELERATION 26
 `define GRAVITY 2
 `define MAX_SPEED_X 10
-`define MAX_SPEED_Y 25
+`define MAX_SPEED_Y 26
+
+//Camera positions
+`define CAM_BOUND 550
+`define CAM_BOUND_MAX 3170
 
 
 

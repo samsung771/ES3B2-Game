@@ -27,6 +27,8 @@ module input_handler(
         input [4:0] btn,
         input signed [5:0] vel_x,
         input signed [5:0] vel_y,
+        input [1:0] eventstate,
+        output [1:0] movementstate,
         output signed [5:0] acc_x,
         output signed [5:0] acc_y
     );
@@ -37,46 +39,58 @@ module input_handler(
     assign acc_x = acc_x_reg;
     assign acc_y = acc_y_reg;
     
+    reg [1:0] state = 0;
+    assign movementstate = state;
     
     // ------------------------------ Handle Inputs ------------------------------
     always @ (posedge clk)  begin
-        //When LEFT button is pressed
-        if (btn[2] && !btn[3]) begin
-            //Acceleration is lower in if not standing on the ground
-            acc_x_reg <= grounded ? -`X_ACCELERATION : -`X_AIR_ACCELERATION;
-        end
-        
-        //When RIGHT button is pressed
-        else if (btn[3] && !btn[2]) begin
-            //Acceleration is lower in if not standing on the ground
-            acc_x_reg <= grounded ? `X_ACCELERATION : `X_AIR_ACCELERATION;
-        end
-        
-        //Add friction if on the ground and no buttons are pressed
-        else if (grounded) begin
-            //If moving accelerate in the opposite direction
-            //Accelleration is 1/2 velocity 
-            if (vel_x < 1 || vel_x > 1)
-                acc_x_reg <= -1 * (vel_x >> 1);
-            
-            //Stop player if |vel_x| = 1
-            //As (1 >> 1) = 0 therefore no friction
-            else if (vel_x != 0)
-                acc_x_reg <= -1 * vel_x;
+        if (eventstate == 0) begin
+            //When LEFT button is pressed
+            if (btn[2] && !btn[3]) begin
+                //Acceleration is lower in if not standing on the ground
+                acc_x_reg <= grounded ? -`X_ACCELERATION : -`X_AIR_ACCELERATION;
                 
-            //If no buttons are pressed stop accellerating
+                state <= 2;
+            end
+            
+            //When RIGHT button is pressed
+            else if (btn[3] && !btn[2]) begin
+                //Acceleration is lower in if not standing on the ground
+                acc_x_reg <= grounded ? `X_ACCELERATION : `X_AIR_ACCELERATION;
+                
+                state <= 1;
+            end
+            
+            //Add friction if on the ground and no buttons are pressed
+            else if (grounded) begin
+                //If moving accelerate in the opposite direction
+                //Accelleration is 1/2 velocity 
+                if (vel_x < 1 || vel_x > 1)
+                    acc_x_reg <= -1 * (vel_x >> 1);
+                
+                //Stop player if |vel_x| = 1
+                //As (1 >> 1) = 0 therefore no friction
+                else if (vel_x != 0)
+                    acc_x_reg <= -1 * vel_x;
+                    
+                //If no buttons are pressed stop accellerating
+                else
+                    acc_x_reg <= 0;
+                    
+                state <= 0;
+            end
+            
             else
                 acc_x_reg <= 0;
+            
+            //Jump when UP button is pressed and player is standing
+            if (btn[1] && grounded)
+                acc_y_reg <= -`JUMP_ACCELERATION;
+            else
+                acc_y_reg <= `GRAVITY;
         end
-        
         else
-            acc_x_reg <= 0;
-        
-        //Jump when UP button is pressed and player is standing
-        if (btn[1] && grounded)
-            acc_y_reg <= -`JUMP_ACCELERATION;
-        else
-            acc_y_reg <= `GRAVITY;
+            acc_x_reg <= -1 * vel_x;
     end
     
 endmodule

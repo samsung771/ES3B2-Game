@@ -19,69 +19,36 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-`define CAM_BOUND_RIGHT 900
-`define CAM_BOUND_LEFT 300
-`define CAM_BOUND_MAX 3170
+
+`include "game_top.vh"
 
 module camera_controller(
         input clk,
         input rst,
         input[15:0] playerpos_x,
-        input signed [5:0] vel_x,
         output [15:0] camerapos_x
     );
     
+    //Camera register to output
     reg [15:0] camerapos_x_reg = 0;
-    
     assign camerapos_x = camerapos_x_reg;
     
-    reg [5:0] dif_x = 0;
-    
     always @ (posedge clk) begin
         if (!rst) 
             camerapos_x_reg <= 0;    
         else begin
-            if (playerpos_x < camerapos_x_reg + `CAM_BOUND_LEFT) begin
-                dif_x <= `CAM_BOUND_LEFT - playerpos_x;
-                
-                if (camerapos_x_reg <= vel_x)
-                    camerapos_x_reg <= 0;
-                
-                else
-                    camerapos_x_reg <= camerapos_x_reg - dif_x;
-            end
-            else if (playerpos_x > camerapos_x_reg + `CAM_BOUND_RIGHT) begin
-                dif_x <=  playerpos_x - `CAM_BOUND_RIGHT;
-                
-                
-                if (camerapos_x_reg + dif_x >= `CAM_BOUND_MAX)
-                    camerapos_x_reg <= `CAM_BOUND_MAX;
-                
-                else
-                    camerapos_x_reg <= camerapos_x_reg + dif_x;
-            end
-            else
-                 dif_x <= 0;
-        end 
-    end
-    
-    /*
-    always @ (posedge clk) begin
-        if (!rst) 
-            camerapos_x_reg <= 0;    
-        else begin
-            if (camerapos_x_reg <= vel_x)
+            //Stop cam from going past the left edge of the level
+            if (playerpos_x < `CAM_BOUND)
                 camerapos_x_reg <= 0;
-            else if (camerapos_x_reg + vel_x >= `CAM_BOUND_MAX)
-                camerapos_x_reg <= `CAM_BOUND_MAX;    
-                
-            else if (vel_x < 0)
-                camerapos_x_reg <= camerapos_x_reg + vel_x - 64;
-                
-            else
-                camerapos_x_reg <= camerapos_x_reg + vel_x;
             
+            //Stop cam from going past the right edge of the level        
+            else if (playerpos_x - `CAM_BOUND >= `CAM_BOUND_MAX)
+                camerapos_x_reg <= `CAM_BOUND_MAX;
+            
+            //Else update to put player ~central
+            else
+                camerapos_x_reg <= playerpos_x - `CAM_BOUND; 
         end 
     end
-    */
+    
 endmodule

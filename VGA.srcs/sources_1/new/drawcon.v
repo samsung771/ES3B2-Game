@@ -31,7 +31,8 @@ module drawcon(
         output [3:0] draw_g,
         output [3:0] draw_b,
         input [15:0] playerpos_x,
-        input [10:0] playerpos_y
+        input [10:0] playerpos_y,
+        input [1:0] playerstate
     );
     
     reg [3:0] blk_r, blk_g, blk_b;
@@ -42,8 +43,8 @@ module drawcon(
     
     assign blkpos_x = playerpos_x - cam_x;
     
-    reg [14:0] addr = 0; //15 bit address
-    reg [14:0] addrOffset = 0; //15 bit address
+    reg [15:0] addr = 0; //15 bit address
+    reg [15:0] addrOffset = 0; //15 bit address
     wire [11:0] rom_pixel;
     
     levelrenderer levelrenderer_inst (
@@ -73,8 +74,8 @@ module drawcon(
     end
 
     always @ (posedge anim_clk) begin
-        if (addrOffset < 'd12288) 
-            addrOffset <= addrOffset + 'd4096;
+        if (addrOffset < 3*`MEM_OFFSET) 
+            addrOffset <= addrOffset + `MEM_OFFSET;
         else
             addrOffset <= 0;
     end  
@@ -90,7 +91,9 @@ module drawcon(
             (curr_x >= blkpos_x) && 
             (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= playerpos_y) && 
-            (curr_y < playerpos_y + `BLK_SIZE)
+            (curr_y < playerpos_y + `BLK_SIZE) &&
+            (curr_y > `BORDER_TOP) &&
+            (curr_y < `RESOLUTION_Y - `BORDER_BTM)
             ) begin
                 //set rgb to sprite
                 blk_r <= rom_pixel[11:8];
@@ -99,7 +102,7 @@ module drawcon(
                 
                 //set address to 0 at start
                 if ((curr_x == blkpos_x) && (curr_y == playerpos_y))
-                    addr <= addrOffset;
+                    addr <= addrOffset + (playerstate * 16'd16384);
                 //else increment
                 else
                     addr <= addr + 1;
@@ -111,9 +114,11 @@ module drawcon(
         end
     end
     
-    assign draw_r = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_r : bg_r;    
-    assign draw_g = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_g : bg_g;
-    assign draw_b = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000)) ? blk_b : bg_b;
+    wire transparent = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000));
+    
+    assign draw_r = transparent ? blk_r : bg_r;    
+    assign draw_g = transparent ? blk_g : bg_g;
+    assign draw_b = transparent ? blk_b : bg_b;
     
     blk_mem_gen_0 inst
     (

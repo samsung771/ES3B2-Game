@@ -30,7 +30,8 @@ module player_controller(
     output [10:0] playerpos_x,
     output [10:0] playerpos_y,
     output [15:0] globalpos,
-    output signed [5:0] vel_out
+    output [1:0] movestate,
+    output [1:0] playerstate
     );
     
     
@@ -52,7 +53,13 @@ module player_controller(
     reg signed [5:0] vel_x = 0;
     reg signed [5:0] vel_y = 0;
     
-    assign vel_out = vel_x;
+    //Animation state
+    wire [1:0] movementstate;
+    assign movestate = movementstate;
+    
+    //Player state - dead or finised level
+    reg [1:0] eventstate = 0;
+    assign playerstate = eventstate;
     
     
     // ----------------------------- Level Memory Setup ----------------------------- 
@@ -64,9 +71,9 @@ module player_controller(
     //Level data memory block
     blk_mem_gen_2 level
     (
-    .clka(clk),
-    .addra(level_addr),
-    .douta(tile)   
+        .clka(clk),
+        .addra(level_addr),
+        .douta(tile)   
     );
     
     
@@ -123,13 +130,22 @@ module player_controller(
     
     //Check if standing on a collidable block
     always @ (posedge clk)  begin
-        if(!rst) 
+        if(!rst) begin
             grounded <= 0;
+            eventstate <= 0;
+        end
         else begin
             grounded <= (
                 collision_map[(global_pos_x) >> 6][(pos_y + `BLK_SIZE + 5) >> 6] || 
-                collision_map[(global_pos_x+ `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
+                collision_map[(global_pos_x + `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
             );
+            
+            if (pos_y > 750 && pos_y < 1800) 
+                eventstate <= 4;
+            else if (global_pos_x > 4400)
+                eventstate <= 5;
+            else 
+                eventstate <= 0;
         end
     end
     
@@ -141,26 +157,30 @@ module player_controller(
         .btn(btn),
         .vel_x(vel_x),
         .vel_y(vel_y),
+        .eventstate(eventstate),
+        .movementstate(movementstate),
         .acc_x(acc_x),
         .acc_y(acc_y)
     );
     
+    reg [3:0] resetcounter = 0;
       
     // --------------------------------- Update Y axis ---------------------------------
     always @ (posedge game_clk)  begin
         if(!rst) 
             pos_y <= 100;
         else begin
-        /*
-        // ------------------------ CHECK SCREEN BOUNDARIES ------------------------
-        //If pos_y overflows so off screen left reset to 1
-        if (vel_y > 0 && (pos_y + vel_y) > 1600) begin 
-            vel_x <= 0;
-            pos_x <= 1;
+        if ( resetcounter == 15 && eventstate == 4) 
+            pos_y <= 100;
+            
+        else if (vel_y < 0 && pos_y + vel_y - 64 > 1500) begin
+            vel_y <= `GRAVITY;
+            pos_y <= 1;
         end
-        */
+        
+        // --------------------------- CHECK COLLISIONS ---------------------------
         //If moving DOWN and next position overlaps with collidable block
-        if (vel_y > 0 && (
+        else if (vel_y > 0 && (
         collision_map[(global_pos_x) >> 6][(pos_y + `BLK_SIZE + vel_y) >> 6] || 
         collision_map[(global_pos_x+ `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + vel_y) >> 6]
         )) begin
@@ -207,24 +227,24 @@ module player_controller(
         if(!rst) 
             global_pos_x <= 300;
         else begin
+        if (eventstate == 4) begin
+            resetcounter <= resetcounter + 1;
+            if ( resetcounter == 15) begin
+                global_pos_x <= 300;
+                resetcounter <= 0;
+            end
+        end
+        
         // ------------------------ CHECK SCREEN BOUNDARIES ------------------------
-        /*
         //If pos_x overflows so off screen left reset to 1
-        if (vel_x < 0 && (pos_x + vel_x - 64) > 1600) begin 
+        else if (vel_x < 0 && global_pos_x + vel_x - 64 > 5000) begin 
             vel_x <= 0;
             global_pos_x <= 1;
         end
         
-        //If pos_x off screen stop
-        else if (pos_x + `BLK_SIZE > `RESOLUTION_X) begin
-            vel_x <= 0;
-            global_pos_x <= `RESOLUTION_X - `BLK_SIZE - 1;
-        end
-        */
-        
         // --------------------------- CHECK COLLISIONS ---------------------------
         //If moving LEFT and next position overlaps with collidable block
-        if (vel_x < 0 && (
+        else if (vel_x < 0 && (
         collision_map[(global_pos_x + vel_x - 64) >> 6][(pos_y) >> 6] || 
         collision_map[(global_pos_x + vel_x - 64) >> 6][(pos_y + `BLK_SIZE - 1) >> 6]
         )) begin

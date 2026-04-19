@@ -40,6 +40,8 @@ module game_top(
     wire [10:0] playerpos_y;
     wire [15:0] camerapos_x;
     wire [15:0] globalpos;
+    wire [1:0] movestate;
+    wire [1:0] playerstate;
     
     
     clk_wiz_0 pix (
@@ -56,13 +58,11 @@ module game_top(
         .game_clk(game_clk)
     );
     
-    wire signed [5:0] vel_x;
     
     camera_controller camera_inst (
         .clk(clk),
         .rst(rst),
         .playerpos_x(globalpos),
-        .vel_x(vel_x),
         .camerapos_x(camerapos_x)
     );
     
@@ -75,7 +75,8 @@ module game_top(
         .playerpos_x(playerpos_x),
         .playerpos_y(playerpos_y),
         .globalpos(globalpos),
-        .vel_out(vel_x)
+        .movestate(movestate),
+        .playerstate(playerstate)
     );
     
     wire [3:0] draw_r;
@@ -95,7 +96,8 @@ module game_top(
         .draw_g(draw_g),
         .draw_b(draw_b),
         .playerpos_x(globalpos),
-        .playerpos_y(playerpos_y)
+        .playerpos_y(playerpos_y),
+        .playerstate(movestate)
         );
 
     vga_out vga_inst( 
