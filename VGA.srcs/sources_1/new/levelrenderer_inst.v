@@ -29,7 +29,9 @@ module levelrenderer(
         input [15:0] cam_x,
         output [3:0] draw_r,
         output [3:0] draw_g,
-        output [3:0] draw_b
+        output [3:0] draw_b,
+        output [9:0] memory_addr,
+        input [7:0] tile
     );
     // ---------------------------- Colour Register Setup ----------------------------
     //Colour registers to draw to
@@ -62,17 +64,8 @@ module levelrenderer(
     // ----------------------------- Level Memory Setup ----------------------------- 
     //Memory address for tiled level
     reg [9:0] level_addr = 0;
-    //Tile ID from level memory
-    wire [7:0] tile;
-  
-    //Level data memory block
-    blk_mem_gen_2 level
-    (
-    .clka(clk),
-    .addra(level_addr),
-    .douta(tile)   
-    );
-    
+    assign memory_addr = level_addr;
+   
     // ------------------------------- Tile Counters ------------------------------- 
     //X and Y positions within the tile
     wire [5:0] pixcounter_x, pixcounter_y;
@@ -101,9 +94,9 @@ module levelrenderer(
             bg_b <= 4'b0000;
         end 
         //If within level space
+        // && (curr_y < (`RESOLUTION_Y-`BORDER_BTM))
         else if (
-        (curr_y >= `BORDER_TOP) && 
-        (curr_y < (`RESOLUTION_Y-`BORDER_BTM))
+        (curr_y >= `BORDER_TOP)
         ) begin
             //Update address registers
             //Level address from tile X and Y positions

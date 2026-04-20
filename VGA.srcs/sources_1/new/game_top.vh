@@ -18,7 +18,7 @@
 
 //Level Dimensions
 `define LEVEL_SIZE 10'd72
-`define LEVEL_HEIGHT 6'd12
+`define LEVEL_HEIGHT 6'd13
 //Screen width in tiles
 `define SCREEN_SIZE 6'd24
 

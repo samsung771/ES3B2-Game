@@ -31,7 +31,10 @@ module player_controller(
     output [10:0] playerpos_y,
     output [15:0] globalpos,
     output [1:0] movestate,
-    output [1:0] playerstate
+    output [1:0] playerstate,
+    output [9:0] memory_addr,
+    input [7:0] tile,
+    output [3:0] lives
     );
     
     
@@ -61,20 +64,14 @@ module player_controller(
     reg [1:0] eventstate = 0;
     assign playerstate = eventstate;
     
+    reg [3:0] attempts = 0;
+    assign lives = attempts;
     
     // ----------------------------- Level Memory Setup ----------------------------- 
     //Memory address for tiled level
     reg [9:0] level_addr = 0;
-    //Tile ID from level memory
-    wire [7:0] tile;
+    assign memory_addr = level_addr;
   
-    //Level data memory block
-    blk_mem_gen_2 level
-    (
-        .clka(clk),
-        .addra(level_addr),
-        .douta(tile)   
-    );
     
     
     // ---------------------------- Update Collision Map -----------------------------
@@ -140,10 +137,10 @@ module player_controller(
                 collision_map[(global_pos_x + `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
             );
             
-            if (pos_y > 750 && pos_y < 1800) 
-                eventstate <= 4;
+            if (pos_y > 750 && pos_y < 1800)
+                eventstate <= 1;
             else if (global_pos_x > 4400)
-                eventstate <= 5;
+                eventstate <= 2;
             else 
                 eventstate <= 0;
         end
@@ -170,7 +167,7 @@ module player_controller(
         if(!rst) 
             pos_y <= 100;
         else begin
-        if ( resetcounter == 15 && eventstate == 4) 
+        if ( resetcounter == 15 && eventstate == 1) 
             pos_y <= 100;
             
         else if (vel_y < 0 && pos_y + vel_y - 64 > 1500) begin
@@ -224,12 +221,15 @@ module player_controller(
     
     // --------------------------------- Update X axis ---------------------------------
     always @ (posedge game_clk)  begin
-        if(!rst) 
+        if(!rst) begin
+            attempts <= 0;
             global_pos_x <= 300;
+        end
         else begin
-        if (eventstate == 4) begin
+        if (eventstate == 1) begin
             resetcounter <= resetcounter + 1;
             if ( resetcounter == 15) begin
+                attempts <= attempts + 1;
                 global_pos_x <= 300;
                 resetcounter <= 0;
             end

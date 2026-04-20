@@ -89,8 +89,10 @@ module input_handler(
             else
                 acc_y_reg <= `GRAVITY;
         end
-        else
+        else begin
             acc_x_reg <= -1 * vel_x;
+            state <= 0;
+        end
     end
     
 endmodule

@@ -42,11 +42,35 @@ module game_top(
     wire [15:0] globalpos;
     wire [1:0] movestate;
     wire [1:0] playerstate;
-    
+    wire [3:0] lives;
     
     clk_wiz_0 pix (
     .clk_out1(pixclk),
     .clk_in1(clk)
+    );
+    
+    
+      
+    // ----------------------------- Level Memory Setup ----------------------------- 
+    //Memory address for tiled level
+    wire [9:0] collision_addr;
+    //Tile ID from level memory
+    wire [7:0] collision_tile;
+    
+    //Memory address for tiled level
+    wire [9:0] draw_addr;
+    //Tile ID from level memory
+    wire [7:0] draw_tile;
+    
+    //Level data memory block
+    blk_mem_gen_2 level
+    (
+        .clka(pixclk),
+        .addra(draw_addr),
+        .douta(draw_tile),  
+        .clkb(clk), 
+        .addrb(collision_addr),
+        .doutb(collision_tile)   
     );
     
     
@@ -76,7 +100,10 @@ module game_top(
         .playerpos_y(playerpos_y),
         .globalpos(globalpos),
         .movestate(movestate),
-        .playerstate(playerstate)
+        .playerstate(playerstate),
+        .memory_addr(collision_addr),
+        .tile(collision_tile),
+        .lives(lives)
     );
     
     wire [3:0] draw_r;
@@ -97,7 +124,10 @@ module game_top(
         .draw_b(draw_b),
         .playerpos_x(globalpos),
         .playerpos_y(playerpos_y),
-        .playerstate(movestate)
+        .playerstate(movestate),
+        .memory_addr(draw_addr),
+        .tile(draw_tile),
+        .lives(lives)
         );
 
     vga_out vga_inst( 

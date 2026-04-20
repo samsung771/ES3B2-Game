@@ -32,20 +32,44 @@ module drawcon(
         output [3:0] draw_b,
         input [15:0] playerpos_x,
         input [10:0] playerpos_y,
-        input [1:0] playerstate
+        input [1:0] playerstate,
+        output [9:0] memory_addr,
+        input [7:0] tile,
+        input [3:0] lives
     );
     
-    reg [3:0] blk_r, blk_g, blk_b;
-
-    wire [3:0] bg_r, bg_g, bg_b;
+    wire [3:0] fg_r, fg_g, fg_b;
     
-    wire [0:10] blkpos_x;
     
-    assign blkpos_x = playerpos_x - cam_x;
+    wire [3:0] bar_r, bar_g, bar_b;
+    wire [3:0] lvl_r, lvl_g, lvl_b;
     
-    reg [15:0] addr = 0; //15 bit address
-    reg [15:0] addrOffset = 0; //15 bit address
-    wire [11:0] rom_pixel;
+    reg [3:0] bg_r, bg_g, bg_b;
+    
+    
+    wire anim_clk;
+    
+    animation_clk_div (
+    .clk(clk),
+    .anim_clk(anim_clk)
+    );
+   
+    
+    player_renderer player_renderer_inst (
+        .clk(clk),
+        .anim_clk(anim_clk),
+        .rst(rst),
+        .curr_x(curr_x),
+        .curr_y(curr_y),
+        .cam_x(cam_x),
+        .draw_r(fg_r),
+        .draw_g(fg_g),
+        .draw_b(fg_b),
+        .playerpos_x(playerpos_x),
+        .playerpos_y(playerpos_y),
+        .playerstate(playerstate)
+    );
+    
     
     levelrenderer levelrenderer_inst (
         .clk(clk),
@@ -53,78 +77,44 @@ module drawcon(
         .curr_x(curr_x),
         .curr_y(curr_y),
         .cam_x(cam_x),
-        .draw_r(bg_r),
-        .draw_g(bg_g),
-        .draw_b(bg_b)
+        .draw_r(lvl_r),
+        .draw_g(lvl_g),
+        .draw_b(lvl_b),
+        .memory_addr(memory_addr),
+        .tile(tile)
     );
     
-    reg[23:0] clk_div;
-    reg anim_clk;
-    //~10Hz clock div
-    always @ (posedge clk)  begin
-        if(!rst)
-            clk_div <= 0;
-        else begin
-            if (clk_div == 24'd10000000) begin
-                clk_div <= 0;
-                anim_clk <= !anim_clk;
-            end else 
-                clk_div <= clk_div+1;
-        end
-    end
-
-    always @ (posedge anim_clk) begin
-        if (addrOffset < 3*`MEM_OFFSET) 
-            addrOffset <= addrOffset + `MEM_OFFSET;
-        else
-            addrOffset <= 0;
-    end  
     
-    //Draw inside border
+    infobar_renderer infobar_renderer_inst (
+        .clk(clk),
+        .anim_clk(anim_clk),
+        .rst(rst),
+        .curr_x(curr_x),
+        .curr_y(curr_y),
+        .draw_r(bar_r),
+        .draw_g(bar_g),
+        .draw_b(bar_b),
+        .lives(lives)
+    );
+    
     always @ (posedge clk) begin
-        if (!rst) begin
-            blk_r <= 4'b0000;
-            blk_g <= 4'b0000;
-            blk_b <= 4'b0000;
-            addr <= 0;
-        end else if (
-            (curr_x >= blkpos_x) && 
-            (curr_x < blkpos_x + `BLK_SIZE) &&
-            (curr_y >= playerpos_y) && 
-            (curr_y < playerpos_y + `BLK_SIZE) &&
-            (curr_y > `BORDER_TOP) &&
-            (curr_y < `RESOLUTION_Y - `BORDER_BTM)
-            ) begin
-                //set rgb to sprite
-                blk_r <= rom_pixel[11:8];
-                blk_g <= rom_pixel[7:4];
-                blk_b <= rom_pixel[3:0];
-                
-                //set address to 0 at start
-                if ((curr_x == blkpos_x) && (curr_y == playerpos_y))
-                    addr <= addrOffset + (playerstate * 16'd16384);
-                //else increment
-                else
-                    addr <= addr + 1;
-                
-        end else begin
-            blk_r <= 4'b0000;
-            blk_g <= 4'b0000;
-            blk_b <= 4'b0000;
+        if (curr_y <= `BORDER_TOP) begin
+            bg_r <= bar_r;
+            bg_g <= bar_g;
+            bg_b <= bar_b;
+        end
+        else begin
+            bg_r <= lvl_r;
+            bg_g <= lvl_g;
+            bg_b <= lvl_b;
         end
     end
     
-    wire transparent = ((blk_r != 4'b0000) || (blk_g != 4'b0000) || (blk_b != 4'b0000));
+    wire transparent = ((fg_r != 4'b0000) || (fg_g != 4'b0000) || (fg_b != 4'b0000));
     
-    assign draw_r = transparent ? blk_r : bg_r;    
-    assign draw_g = transparent ? blk_g : bg_g;
-    assign draw_b = transparent ? blk_b : bg_b;
+    assign draw_r = transparent ? fg_r : bg_r;    
+    assign draw_g = transparent ? fg_g : bg_g;
+    assign draw_b = transparent ? fg_b : bg_b;
     
-    blk_mem_gen_0 inst
-    (
-    .clka(clk),
-    .addra(addr),
-    .douta(rom_pixel)   
-    );
     
 endmodule
