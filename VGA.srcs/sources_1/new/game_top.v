@@ -44,6 +44,11 @@ module game_top(
     wire [1:0] eventstate;
     wire [3:0] lives;
     
+    
+    wire [15:0] enemypos_x;
+    wire [10:0] enemypos_y;
+    wire enemydirection;
+    
     clk_wiz_0 pix (
     .clk_out1(pixclk),
     .clk_in1(clk)
@@ -103,7 +108,18 @@ module game_top(
         .playerstate(eventstate),
         .memory_addr(collision_addr),
         .tile(collision_tile),
-        .lives(lives)
+        .lives(lives),
+        .enemypos_x(enemypos_x),
+        .enemypos_y(enemypos_y)
+    );
+    
+    enemy_controller enemy_inst (
+        .clk(clk),
+        .game_clk(game_clk),
+        .rst(rst),
+        .enemypos_x(enemypos_x),
+        .enemypos_y(enemypos_y),
+        .direction(enemydirection)
     );
     
     wire [3:0] draw_r;
@@ -128,7 +144,10 @@ module game_top(
         .eventstate(eventstate),
         .memory_addr(draw_addr),
         .tile(draw_tile),
-        .lives(lives)
+        .lives(lives),
+        .enemypos_x(enemypos_x),
+        .enemypos_y(enemypos_y),
+        .enemydirection(enemydirection)
         );
 
     vga_out vga_inst( 

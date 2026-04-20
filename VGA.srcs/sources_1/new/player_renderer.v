@@ -21,6 +21,11 @@
 
 `include "game_top.vh"
 
+`define WINMSG_WIDTH 440
+`define WINMSG_HEIGHT 203
+`define WINMSG_POS_X 480
+`define WINMSG_POS_Y 200
+
 module player_renderer(
         input clk,
         input anim_clk,
@@ -48,10 +53,6 @@ module player_renderer(
     .douta(rom_pixel)   
     );
     
-    `define WINMSG_WIDTH 440
-    `define WINMSG_HEIGHT 203
-    `define WINMSG_POS_X 500
-    `define WINMSG_POS_Y 200
     
     reg [16:0] winmsg_addr = 0; 
     wire [11:0]  winmsg_pixel;

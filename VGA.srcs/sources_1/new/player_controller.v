@@ -34,7 +34,9 @@ module player_controller(
     output [1:0] playerstate,
     output [9:0] memory_addr,
     input [7:0] tile,
-    output [3:0] lives
+    output [3:0] lives,
+    input [15:0] enemypos_x,
+    input [10:0] enemypos_y
     );
     
     
@@ -137,7 +139,19 @@ module player_controller(
                 collision_map[(global_pos_x + `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
             );
             
-            if (pos_y > 750 && pos_y < 1800)
+            if (pos_y > 750) //Fall off the map or ...
+                eventstate <= 1;
+            else if  (
+            ((global_pos_x >= enemypos_x && 
+            global_pos_x < enemypos_x + `BLK_SIZE) ||
+            (global_pos_x + `BLK_SIZE >= enemypos_x && 
+            global_pos_x + `BLK_SIZE < enemypos_x + `BLK_SIZE)) &&
+            
+            ((pos_y + 100 >= enemypos_y &&
+            pos_y + 100 < enemypos_y + `BLK_SIZE) ||
+            (pos_y + `BLK_SIZE + 100 >= enemypos_y &&
+            pos_y + `BLK_SIZE + 100 < enemypos_y + `BLK_SIZE))
+            ) //Collides with enemy
                 eventstate <= 1;
             else if (global_pos_x > 4400)
                 eventstate <= 2;
@@ -145,6 +159,15 @@ module player_controller(
                 eventstate <= 0;
         end
     end
+    
+    /*
+    &&
+            
+            ((pos_y + 100 >= enemypos_y &&
+            pos_y + 100 < enemypos_y + `BLK_SIZE) ||
+            (pos_y + `BLK_SIZE + 100 >= enemypos_y &&
+            pos_y + `BLK_SIZE + 100 < enemypos_y + `BLK_SIZE))
+    */
     
     
     //Process button inputs and return accelleration
@@ -167,7 +190,7 @@ module player_controller(
         if(!rst) 
             pos_y <= 100;
         else begin
-        if ( resetcounter == 15 && eventstate == 1) 
+        if ( resetcounter == 5 && eventstate == 1) 
             pos_y <= 100;
             
         else if (vel_y < 0 && pos_y + vel_y - 64 > 1500) begin
@@ -228,7 +251,7 @@ module player_controller(
         else begin
         if (eventstate == 1) begin
             resetcounter <= resetcounter + 1;
-            if ( resetcounter == 15) begin
+            if ( resetcounter == 5) begin
                 attempts <= attempts + 1;
                 global_pos_x <= 300;
                 resetcounter <= 0;

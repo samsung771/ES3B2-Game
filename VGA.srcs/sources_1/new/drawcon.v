@@ -34,13 +34,18 @@ module drawcon(
         input [10:0] playerpos_y,
         input [1:0] playerstate,
         input [1:0] eventstate,
+        input [15:0] enemypos_x,
+        input [10:0] enemypos_y,
         output [9:0] memory_addr,
         input [7:0] tile,
-        input [3:0] lives
+        input [3:0] lives,
+        input enemydirection
     );
     
-    wire [3:0] fg_r, fg_g, fg_b;
+    reg [3:0] fg_r, fg_g, fg_b;
     
+    wire [3:0] enemy_r, enemy_g, enemy_b;
+    wire [3:0] player_r, player_g, player_b;
     
     wire [3:0] bar_r, bar_g, bar_b;
     wire [3:0] lvl_r, lvl_g, lvl_b;
@@ -63,13 +68,28 @@ module drawcon(
         .curr_x(curr_x),
         .curr_y(curr_y),
         .cam_x(cam_x),
-        .draw_r(fg_r),
-        .draw_g(fg_g),
-        .draw_b(fg_b),
+        .draw_r(player_r),
+        .draw_g(player_g),
+        .draw_b(player_b),
         .playerpos_x(playerpos_x),
         .playerpos_y(playerpos_y),
         .playerstate(playerstate),
         .eventstate(eventstate)
+    );
+    
+    enemy_renderer enemy_renderer_inst (
+        .clk(clk),
+        .anim_clk(anim_clk),
+        .rst(rst),
+        .curr_x(curr_x),
+        .curr_y(curr_y),
+        .cam_x(cam_x),
+        .draw_r(enemy_r),
+        .draw_g(enemy_g),
+        .draw_b(enemy_b),
+        .pos_x(enemypos_x),
+        .pos_y(enemypos_y),
+        .enemydirection(enemydirection)
     );
     
     
@@ -109,6 +129,19 @@ module drawcon(
             bg_r <= lvl_r;
             bg_g <= lvl_g;
             bg_b <= lvl_b;
+        end
+    end
+    
+     always @ (posedge clk) begin
+        if ((enemy_r != 4'b0000) || (enemy_g != 4'b0000) || (enemy_b != 4'b0000)) begin
+            fg_r <= enemy_r;
+            fg_g <= enemy_g;
+            fg_b <= enemy_b;
+        end
+        else begin
+            fg_r <= player_r;
+            fg_g <= player_g;
+            fg_b <= player_b;
         end
     end
     
