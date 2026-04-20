@@ -36,54 +36,91 @@ module game_top(
     
     wire pixclk;
         
-    reg[20:0] clk_div;
-    reg game_clk;
-    reg [10:0] blkpos_x = `RESOLUTION_X/2;
-    reg [10:0] blkpos_y = `RESOLUTION_Y/2;
+    wire [10:0] playerpos_x;
+    wire [10:0] playerpos_y;
+    wire [15:0] camerapos_x;
+    wire [15:0] globalpos;
+    wire [1:0] movestate;
+    wire [1:0] eventstate;
+    wire [3:0] lives;
+    
+    
+    wire [15:0] enemypos_x;
+    wire [10:0] enemypos_y;
+    wire enemydirection;
     
     clk_wiz_0 pix (
-        // Clock out ports  
-        .clk_out1(pixclk),
-        // Clock in ports
-        .clk_in1(clk)
-        );
-  
+    .clk_out1(pixclk),
+    .clk_in1(clk)
+    );
     
-    //60Hz clock div
-    always @ (posedge clk)  begin
-        if(!rst)
-            clk_div <= 0;
-        else begin
-            if (clk_div == 21'd1666666) begin
-                clk_div <= 0;
-                game_clk <= !game_clk;
-            end else 
-                clk_div <= clk_div+1;
-        end
-    end
     
-    always @ (posedge game_clk)  begin
-        if (btn[0]) begin 
-            blkpos_x <= `RESOLUTION_X/2;
-            blkpos_y <= `RESOLUTION_Y/2;
-        end 
-        else begin
-            case (btn[4:1]) 
-            `LBTN:
-                if (blkpos_x > 0)
-                    blkpos_x <= blkpos_x -5;
-            `RBTN:
-                if (blkpos_x < (`RESOLUTION_X - `BLK_SIZE))
-                    blkpos_x <= blkpos_x +5;
-            `UBTN:
-                if (blkpos_y > `BORDER_TOP)
-                    blkpos_y <= blkpos_y -5;
-            `DBTN: 
-                if (blkpos_y < (`RESOLUTION_Y - `BORDER_BTM - `BLK_SIZE))
-                    blkpos_y <= blkpos_y +5;
-            endcase
-        end 
-    end
+      
+    // ----------------------------- Level Memory Setup ----------------------------- 
+    //Memory address for tiled level
+    wire [9:0] collision_addr;
+    //Tile ID from level memory
+    wire [7:0] collision_tile;
+    
+    //Memory address for tiled level
+    wire [9:0] draw_addr;
+    //Tile ID from level memory
+    wire [7:0] draw_tile;
+    
+    //Level data memory block
+    blk_mem_gen_2 level
+    (
+        .clka(pixclk),
+        .addra(draw_addr),
+        .douta(draw_tile),  
+        .clkb(clk), 
+        .addrb(collision_addr),
+        .doutb(collision_tile)   
+    );
+    
+    
+    //60Hz game clock for position updates
+    wire game_clk;
+    
+    game_clk_div (
+        .clk(clk),
+        .game_clk(game_clk)
+    );
+    
+    
+    camera_controller camera_inst (
+        .clk(clk),
+        .rst(rst),
+        .playerpos_x(globalpos),
+        .camerapos_x(camerapos_x)
+    );
+    
+    player_controller player_inst (
+        .clk(clk),
+        .game_clk(game_clk),
+        .rst(rst),
+        .btn(btn),
+        .cam_x(camerapos_x),
+        .playerpos_x(playerpos_x),
+        .playerpos_y(playerpos_y),
+        .globalpos(globalpos),
+        .movestate(movestate),
+        .playerstate(eventstate),
+        .memory_addr(collision_addr),
+        .tile(collision_tile),
+        .lives(lives),
+        .enemypos_x(enemypos_x),
+        .enemypos_y(enemypos_y)
+    );
+    
+    enemy_controller enemy_inst (
+        .clk(clk),
+        .game_clk(game_clk),
+        .rst(rst),
+        .enemypos_x(enemypos_x),
+        .enemypos_y(enemypos_y),
+        .direction(enemydirection)
+    );
     
     wire [3:0] draw_r;
     wire [3:0] draw_g;
@@ -97,11 +134,20 @@ module game_top(
         .rst(rst),
         .curr_x(curr_x),
         .curr_y(curr_y),
+        .cam_x(camerapos_x),
         .draw_r(draw_r),
         .draw_g(draw_g),
         .draw_b(draw_b),
-        .blkpos_x(blkpos_x),
-        .blkpos_y(blkpos_y)
+        .playerpos_x(globalpos),
+        .playerpos_y(playerpos_y),
+        .playerstate(movestate),
+        .eventstate(eventstate),
+        .memory_addr(draw_addr),
+        .tile(draw_tile),
+        .lives(lives),
+        .enemypos_x(enemypos_x),
+        .enemypos_y(enemypos_y),
+        .enemydirection(enemydirection)
         );
 
     vga_out vga_inst( 
