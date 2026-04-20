@@ -41,7 +41,7 @@ module game_top(
     wire [15:0] camerapos_x;
     wire [15:0] globalpos;
     wire [1:0] movestate;
-    wire [1:0] playerstate;
+    wire [1:0] eventstate;
     wire [3:0] lives;
     
     clk_wiz_0 pix (
@@ -100,7 +100,7 @@ module game_top(
         .playerpos_y(playerpos_y),
         .globalpos(globalpos),
         .movestate(movestate),
-        .playerstate(playerstate),
+        .playerstate(eventstate),
         .memory_addr(collision_addr),
         .tile(collision_tile),
         .lives(lives)
@@ -125,6 +125,7 @@ module game_top(
         .playerpos_x(globalpos),
         .playerpos_y(playerpos_y),
         .playerstate(movestate),
+        .eventstate(eventstate),
         .memory_addr(draw_addr),
         .tile(draw_tile),
         .lives(lives)

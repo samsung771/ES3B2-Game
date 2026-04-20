@@ -33,6 +33,7 @@ module drawcon(
         input [15:0] playerpos_x,
         input [10:0] playerpos_y,
         input [1:0] playerstate,
+        input [1:0] eventstate,
         output [9:0] memory_addr,
         input [7:0] tile,
         input [3:0] lives
@@ -67,7 +68,8 @@ module drawcon(
         .draw_b(fg_b),
         .playerpos_x(playerpos_x),
         .playerpos_y(playerpos_y),
-        .playerstate(playerstate)
+        .playerstate(playerstate),
+        .eventstate(eventstate)
     );
     
     

@@ -33,18 +33,35 @@ module player_renderer(
         output [3:0] draw_b,
         input [15:0] playerpos_x,
         input [10:0] playerpos_y,
-        input [1:0] playerstate
+        input [1:0] playerstate,
+        input [1:0] eventstate
     );
     reg [15:0] addr = 0; //15 bit address
     reg [15:0] addrOffset = 0; //15 bit address
     wire [11:0] rom_pixel;
     
     
-    blk_mem_gen_0 inst
+    blk_mem_gen_0 player_sprites
     (
     .clka(clk),
     .addra(addr),
     .douta(rom_pixel)   
+    );
+    
+    `define WINMSG_WIDTH 440
+    `define WINMSG_HEIGHT 203
+    `define WINMSG_POS_X 500
+    `define WINMSG_POS_Y 200
+    
+    reg [16:0] winmsg_addr = 0; 
+    wire [11:0]  winmsg_pixel;
+    
+    
+    win_message_mem win_msg_sprite
+    (
+    .clka(clk),
+    .addra(winmsg_addr),
+    .douta(winmsg_pixel)   
     );
     
     
@@ -90,7 +107,26 @@ module player_renderer(
                 else
                     addr <= addr + 1;
                 
-        end else begin
+        end else if (
+        eventstate == 2 &&
+        curr_x >= `WINMSG_POS_X &&
+        curr_x < `WINMSG_POS_X + `WINMSG_WIDTH &&
+        curr_y >= `WINMSG_POS_Y &&
+        curr_y < `WINMSG_POS_Y + `WINMSG_HEIGHT
+        ) begin
+                //set rgb to sprite
+                blk_r <= winmsg_pixel[11:8];
+                blk_g <= winmsg_pixel[7:4];
+                blk_b <= winmsg_pixel[3:0];
+                
+                //set address to 0 at start
+                if ((curr_x == `WINMSG_POS_X) && (curr_y == `WINMSG_POS_Y))
+                    winmsg_addr <= 0;
+                //else increment
+                else
+                    winmsg_addr <= winmsg_addr + 1;
+        end
+        else begin
             blk_r <= 4'b0000;
             blk_g <= 4'b0000;
             blk_b <= 4'b0000;
