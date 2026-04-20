@@ -20,7 +20,7 @@
 `define LEVEL_SIZE 10'd72
 `define LEVEL_HEIGHT 6'd13
 //Screen width in tiles
-`define SCREEN_SIZE 6'd24
+//`define SCREEN_SIZE 6'd24
 
 //Button Macros
 `define LBTN 4'b0010
@@ -36,9 +36,21 @@
 `define MAX_SPEED_X 10
 `define MAX_SPEED_Y 26
 
+`define WIN_FLAG_POS 4400
+`define OFF_MAP_POS 750
+
 //Camera positions
 `define CAM_BOUND 550
 `define CAM_BOUND_MAX 3170
+
+//Enemy positions
+`define ENEMY_1_BOUND_LEFT 3650
+`define ENEMY_1_BOUND_RIGHT 3900
+`define ENEMY_1_POS_Y 668
+
+`define ENEMY_2_BOUND_LEFT 2816
+`define ENEMY_2_BOUND_RIGHT 3136
+`define ENEMY_2_POS_Y 610
 
 
 

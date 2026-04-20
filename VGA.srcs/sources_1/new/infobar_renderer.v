@@ -20,6 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 `define SMALL_SPRITE_OFFSET 1024
+`define SMALL_SPRITE_SIZE 32
 
 `define NUMBER_POS_X 1150
 `define NUMBER_POS_Y 45
@@ -81,17 +82,19 @@ module infobar_renderer(
     
     reg [3:0] fg_r, fg_g, fg_b;
     
+    `define WITHIN_SPRITE(x,y) (             \
+        curr_x >= x &&                       \
+        curr_x <  x + `SMALL_SPRITE_SIZE &&  \
+        curr_y >= y &&                       \
+        curr_y <  y + `SMALL_SPRITE_SIZE     \
+        )
+    
     always @ (posedge clk) begin
         if (!rst) begin
             lives_addr <= 0;
             num_addr <= 0;
         end
-        else if (
-        curr_x >= `LIVES_POS_X &&
-        curr_x <  `LIVES_POS_X + 32 &&
-        curr_y >= `LIVES_POS_Y &&
-        curr_y <  `LIVES_POS_Y + 32
-        )begin
+        else if (`WITHIN_SPRITE(`LIVES_POS_X,`LIVES_POS_Y))begin
             //set rgb to sprite
             fg_r <= lives_pixel[11:8];
             fg_g <= lives_pixel[7:4];
@@ -103,12 +106,7 @@ module infobar_renderer(
             else
                 lives_addr <= lives_addr + 1;
         end
-        else if (
-        curr_x >= `NUMBER_POS_X &&
-        curr_x <  `NUMBER_POS_X + 32 &&
-        curr_y >= `NUMBER_POS_Y &&
-        curr_y <  `NUMBER_POS_Y + 32
-        )begin
+        else if (`WITHIN_SPRITE(`NUMBER_POS_X,`NUMBER_POS_Y))begin
             //set rgb to sprite
             fg_r <= num_pixel[11:8];
             fg_g <= num_pixel[7:4];

@@ -34,17 +34,27 @@ module drawcon(
         input [10:0] playerpos_y,
         input [1:0] playerstate,
         input [1:0] eventstate,
-        input [15:0] enemypos_x,
-        input [10:0] enemypos_y,
         output [9:0] memory_addr,
         input [7:0] tile,
         input [3:0] lives,
-        input enemydirection
+        input [15:0] enemy_1_pos_x,
+        input [10:0] enemy_1_pos_y,
+        input enemy_1_direction,
+        input [15:0] enemy_2_pos_x,
+        input [10:0] enemy_2_pos_y,
+        input enemy_2_direction
     );
     
     reg [3:0] fg_r, fg_g, fg_b;
     
     wire [3:0] enemy_r, enemy_g, enemy_b;
+    
+    wire [3:0] enemy_1_r, enemy_1_g, enemy_1_b, enemy_2_r, enemy_2_g, enemy_2_b;
+    
+    assign enemy_r = enemy_1_r + enemy_2_r;
+    assign enemy_g = enemy_1_g + enemy_2_g;
+    assign enemy_b = enemy_1_b + enemy_2_b;
+    
     wire [3:0] player_r, player_g, player_b;
     
     wire [3:0] bar_r, bar_g, bar_b;
@@ -77,19 +87,34 @@ module drawcon(
         .eventstate(eventstate)
     );
     
-    enemy_renderer enemy_renderer_inst (
+    enemy_renderer enemy_1_renderer_inst (
         .clk(clk),
         .anim_clk(anim_clk),
         .rst(rst),
         .curr_x(curr_x),
         .curr_y(curr_y),
         .cam_x(cam_x),
-        .draw_r(enemy_r),
-        .draw_g(enemy_g),
-        .draw_b(enemy_b),
-        .pos_x(enemypos_x),
-        .pos_y(enemypos_y),
-        .enemydirection(enemydirection)
+        .draw_r(enemy_1_r),
+        .draw_g(enemy_1_g),
+        .draw_b(enemy_1_b),
+        .pos_x(enemy_1_pos_x),
+        .pos_y(enemy_1_pos_y),
+        .enemydirection(enemy_1_direction)
+    );
+    
+    enemy_renderer enemy_2_renderer_inst (
+        .clk(clk),
+        .anim_clk(anim_clk),
+        .rst(rst),
+        .curr_x(curr_x),
+        .curr_y(curr_y),
+        .cam_x(cam_x),
+        .draw_r(enemy_2_r),
+        .draw_g(enemy_2_g),
+        .draw_b(enemy_2_b),
+        .pos_x(enemy_2_pos_x),
+        .pos_y(enemy_2_pos_y),
+        .enemydirection(enemy_2_direction)
     );
     
     

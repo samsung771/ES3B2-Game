@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module enemy_controller(
+module enemy_controller
+#(ENEMYBOUND_RIGHT=0, ENEMYBOUND_LEFT=0, ENEMYPOS_Y=0)
+(
         input clk,
         input game_clk,
         input rst,
@@ -28,13 +30,12 @@ module enemy_controller(
         output [10:0] enemypos_y,
         output direction
     );
-    //3650 3965
     `define ENEMYBOUND_LEFT 3650
     `define ENEMYBOUND_RIGHT 3900
     `define ENEMYPOS_Y 668
     
-    reg [15:0] pos_x = `ENEMYBOUND_RIGHT;
-    reg [10:0] pos_y = `ENEMYPOS_Y;
+    reg [15:0] pos_x = ENEMYBOUND_RIGHT;
+    reg [10:0] pos_y = ENEMYPOS_Y;
     
     assign enemypos_x = pos_x;
     assign enemypos_y = pos_y;
@@ -44,16 +45,16 @@ module enemy_controller(
     
     always @ (posedge game_clk) begin
         if (!rst) 
-            pos_x <= `ENEMYBOUND_LEFT;
+            pos_x <= ENEMYBOUND_LEFT;
         else begin
             if (dir) begin
-                if (pos_x >= `ENEMYBOUND_RIGHT)
+                if (pos_x >= ENEMYBOUND_RIGHT)
                     dir <= 0;
                 else
                     pos_x <= pos_x + 5;
             end
             else begin
-                if (pos_x <= `ENEMYBOUND_LEFT)
+                if (pos_x <= ENEMYBOUND_LEFT)
                     dir <= 1;
                 else
                     pos_x <= pos_x - 5;

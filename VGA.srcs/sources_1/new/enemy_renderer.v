@@ -37,7 +37,8 @@ module enemy_renderer(
     
     
     reg [13:0] addr = 0;
-    reg [13:0] addrOffset = 0;
+    reg [13:0] animOffset = 0;
+    reg [13:0] pixOffset = 0;
     wire [11:0] rom_pixel;
     
     blk_mem_gen_6 enemy_sprite
@@ -54,10 +55,10 @@ module enemy_renderer(
     assign blkpos_x = pos_x - cam_x;
     
     always @ (posedge anim_clk) begin
-        if (addrOffset < `MEM_OFFSET) 
-            addrOffset <= addrOffset + `MEM_OFFSET;
+        if (animOffset < `MEM_OFFSET) 
+            animOffset <= animOffset + `MEM_OFFSET;
         else
-            addrOffset <= 0;
+            animOffset <= 0;
     end  
     
     always @ (posedge clk) begin
@@ -68,6 +69,7 @@ module enemy_renderer(
             addr <= 0;
         end else if (
             (pos_x > cam_x) &&
+            (pos_x + `BLK_SIZE < cam_x + `RESOLUTION_X) &&
             (curr_x >= blkpos_x) && 
             (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= pos_y) && 
@@ -78,12 +80,9 @@ module enemy_renderer(
                 blk_g <= rom_pixel[7:4];
                 blk_b <= rom_pixel[3:0];
                 
-                //set address to 0 at start
-                if ((curr_x == blkpos_x) && (curr_y == pos_y))
-                    addr <= addrOffset + (enemydirection * 2 * `MEM_OFFSET);
-                //else increment
-                else
-                    addr <= addr + 1;
+                pixOffset <= (curr_x-blkpos_x) + ((curr_y-pos_y)*`BLK_SIZE) + 3;
+                
+                addr <= pixOffset + animOffset + (enemydirection * 2 * `MEM_OFFSET);
         end
         else begin
             blk_r <= 4'b0000;

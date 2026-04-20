@@ -31,7 +31,7 @@ module game_clk_div(
     assign game_clk = game_clk_reg;
     
     
-    //60Hz clock divider
+    //30Hz clock divider  
     always @ (posedge clk)  begin
         if (clk_div == 22'd1666666) begin
             clk_div <= 0;
