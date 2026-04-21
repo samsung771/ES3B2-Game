@@ -25,13 +25,14 @@ module animation_clk_div(
         output anim_clk
     );
     
-    
+    //Divider counter register
     reg[23:0] clk_div = 0;
-    reg anim_clk_reg;
     
+    //Output clock
+    reg anim_clk_reg;
     assign anim_clk = anim_clk_reg;
     
-    //10Hz clock div
+    //5Hz clock divider
     always @ (posedge clk)  begin
         if (clk_div == 24'd10000000) begin
             clk_div <= 0;
@@ -39,5 +40,4 @@ module animation_clk_div(
         end else 
             clk_div <= clk_div+1;
     end
-    
 endmodule

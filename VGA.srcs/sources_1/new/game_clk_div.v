@@ -25,11 +25,12 @@ module game_clk_div(
         output game_clk
     );
         
+    //Divider counter register
     reg[21:0] clk_div;
+    
+    //Output clock
     reg game_clk_reg = 0; 
-    
     assign game_clk = game_clk_reg;
-    
     
     //30Hz clock divider  
     always @ (posedge clk)  begin
@@ -39,5 +40,4 @@ module game_clk_div(
         end else 
             clk_div <= clk_div+1;
     end
-    
 endmodule

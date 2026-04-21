@@ -25,13 +25,15 @@ module collisionmap_clk_div(
         output collisionmap_clk
     );
     
-    //Collision clock divider to account for memory latency
+    //Divider counter register
     reg [3:0] collisionclk_div = 0;
-    reg collisionclk = 0;
     
+    //Output clock
+    reg collisionclk = 0;
     assign collisionmap_clk = collisionclk;
     
-    //Divide clk to 10MHz
+    //Divide clk to ~5MHz
+    //Doesn't have to be accurate just needs to allow for memory latency
     always @ (posedge clk) begin
         if (collisionclk_div == 10) begin
             collisionclk_div <= 0;

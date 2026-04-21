@@ -34,58 +34,52 @@ module game_top(
     output [3:0] pix_g,
     output [3:0] pix_b,
     output hsync,
-    output vsync
+    output vsync,
+    input ACL_MISO,
+    output ACL_MOSI,
+    output ACL_SCLK,
+    output ACL_CSN
     );
     
-    
+    //106MHz clock for VGA drawing
     wire pixclk;
-        
+    clk_wiz_0 pix ( .clk_out1(pixclk), .clk_in1(clk));
+    
+    //Player connections
     wire [15:0] playerpos_x;
     wire [10:0] playerpos_y;
-    wire [15:0] camerapos_x;
     wire [1:0] movestate;
     wire [1:0] eventstate;
     wire [3:0] lives;
+    wire [15:0] camerapos_x;
     
-    
+    //Enemy 1 wires
     wire [15:0] enemy_1_pos_x;
     wire [10:0] enemy_1_pos_y;
     wire enemy_1_direction;
     
-    
+    //Enemy 2 wires
     wire [15:0] enemy_2_pos_x;
     wire [10:0] enemy_2_pos_y;
     wire enemy_2_direction;
     
-    clk_wiz_0 pix (
-    .clk_out1(pixclk),
-    .clk_in1(clk)
-    );
-    
-    timer timer_inst (
-    .clk(clk),
-    .rst(rst),
-    .eventstate(eventstate),
-    .seg(seg),
-    .an(an)
-    );
-    
+    //Accellerometer output
+    wire signed [7:0] z_accel;
     
       
-    // ----------------------------- Level Memory Setup ----------------------------- 
-    //Memory address for tiled level
+    //Level Memory Setup
+    //Dual port as its needed by both level renderer and for collisions
+    
+    //Memory address and tile output for level collisions
     wire [9:0] collision_addr;
-    //Tile ID from level memory
     wire [7:0] collision_tile;
     
-    //Memory address for tiled level
+    //Memory address and tile output for level renderer
     wire [9:0] draw_addr;
-    //Tile ID from level memory
     wire [7:0] draw_tile;
     
     //Level data memory block
-    blk_mem_gen_2 level
-    (
+    blk_mem_gen_2 level (
         .clka(pixclk),
         .addra(draw_addr),
         .douta(draw_tile),  
@@ -95,13 +89,9 @@ module game_top(
     );
     
     
-    //60Hz game clock for position updates
+    //30Hz game tick clock for position updates
     wire game_clk;
-    
-    game_clk_div (
-        .clk(clk),
-        .game_clk(game_clk)
-    );
+    game_clk_div ( .clk(clk), .game_clk(game_clk));
     
     
     camera_controller camera_inst (
@@ -118,6 +108,7 @@ module game_top(
         .btn(btn),
         .sw(sw),
         .LED(LED),
+        .z_accel(z_accel),
         .cam_x(camerapos_x),
         .playerpos_x(playerpos_x),
         .playerpos_y(playerpos_y),
@@ -132,6 +123,8 @@ module game_top(
         .enemy_2_pos_y(enemy_2_pos_y)
     );
     
+    
+    //Enemy instances with their parameters
     enemy_controller #( `ENEMY_1_BOUND_RIGHT, 
                         `ENEMY_1_BOUND_LEFT, 
                         `ENEMY_1_POS_Y) 
@@ -143,7 +136,6 @@ module game_top(
         .enemypos_y(enemy_1_pos_y),
         .direction(enemy_1_direction)
     );
-    
     
     enemy_controller #( `ENEMY_2_BOUND_RIGHT, 
                         `ENEMY_2_BOUND_LEFT, 
@@ -157,6 +149,10 @@ module game_top(
         .direction(enemy_2_direction)
     );
     
+    
+    // ----------------------------- Renderer ----------------------------- 
+    
+    //VGA display connections
     wire [3:0] draw_r;
     wire [3:0] draw_g;
     wire [3:0] draw_b;
@@ -187,7 +183,8 @@ module game_top(
         .enemy_2_pos_y(enemy_2_pos_y),
         .enemy_2_direction(enemy_2_direction)
         );
-
+    
+    //VGA interface
     vga_out vga_inst( 
         .clk(pixclk),
         .rst(rst),
@@ -202,4 +199,25 @@ module game_top(
         .hsync(hsync),
         .vsync(vsync)
         );
+    
+    // ------------------------------- IO Handlers ------------------------------- 
+    //Acellerometer SPI interface
+    accellerometer_controller accellerometer_inst (
+        .clk(clk),
+        .ACL_MISO(ACL_MISO),
+        .ACL_MOSI(ACL_MOSI),
+        .ACL_SCLK(ACL_SCLK),
+        .ACL_CSN(ACL_CSN),
+        .data_out(z_accel)
+    );
+    
+    //7 Segment timer
+    timer timer_inst (
+    .clk(clk),
+    .rst(rst),
+    .eventstate(eventstate),
+    .seg(seg),
+    .an(an)
+    );
+    
 endmodule

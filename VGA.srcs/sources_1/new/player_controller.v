@@ -28,6 +28,7 @@ module player_controller(
     input [4:0] btn,
     input [15:0] sw,
     output [15:0] LED,
+    input signed [7:0] z_accel,
     input [15:0] cam_x,
     output [15:0] playerpos_x,
     output [10:0] playerpos_y,
@@ -58,10 +59,11 @@ module player_controller(
     //+100 to account for border
     assign playerpos_y = pos_y + 100;
     
-    
+    //signed movement wires for accelleration
     wire signed [5:0] acc_x;
     wire signed [5:0] acc_y;
     
+    //signed movement registers for velocity
     reg signed [5:0] vel_x = 0;
     reg signed [5:0] vel_y = 0;
     
@@ -73,20 +75,20 @@ module player_controller(
     reg [1:0] eventstate = 0;
     assign playerstate = eventstate;
     
+    //Attempts counters to display on bar
     reg [3:0] attempts = 0;
     assign lives = attempts;
     
-    // ----------------------------- Level Memory Setup ----------------------------- 
     //Memory address for tiled level
     reg [9:0] level_addr = 0;
     assign memory_addr = level_addr;
-  
     
     
     // ---------------------------- Update Collision Map -----------------------------
-    //2D array of collidable tiles on the screen
+    //2D array of collidable tiles in the level
     reg collision_map [0:(`LEVEL_SIZE-1)][0:(`LEVEL_HEIGHT-1)];
     
+    //Counters for x and y position
     reg[6:0] xcounter = 0;
     reg[6:0] ycounter = 0;
     
@@ -97,39 +99,28 @@ module player_controller(
     
     //Collision clock divider to account for memory latency
     wire collisionmap_clk;
-    
-    collisionmap_clk_div (
-        .clk(clk),
-        .collisionmap_clk(collisionmap_clk)
-    );
+    collisionmap_clk_div (.clk(clk),.collisionmap_clk(collisionmap_clk));
     
     //Update collision map
     always @ (posedge collisionmap_clk) begin
-        if(!rst) begin
+        //Set tile collisions
+        //Tiles >= 11 are collidable 
+        collision_map[xcounter][ycounter] <= (tile >= 8'd11);
+        
+        //Loop through X and Y positions
+        if (xcounter == (`LEVEL_SIZE - 1)) begin
             xcounter <= 0;
-            ycounter <= 0;
-        end            
-        else begin
-            //Set tile collisions
-            //Tiles >= 11 are collidable 
-            collision_map[xcounter][ycounter] <= (tile >= 8'd11);
             
-            //Loop through X and Y positions
-            if (xcounter == (`LEVEL_SIZE - 1)) begin
-                xcounter <= 0;
-                
-                if (ycounter == `LEVEL_HEIGHT-1) 
-                    ycounter <= 0;
-                else
-                    ycounter <= ycounter + 1;
-            end
-            else 
-                xcounter <= xcounter + 1 ;
-           
+            if (ycounter == `LEVEL_HEIGHT-1) 
+                ycounter <= 0;
+            else
+                ycounter <= ycounter + 1;
         end
+        else 
+            xcounter <= xcounter + 1 ;
     end
     
-    //Check if player overlaps with enemy
+    //Function to check if player overlaps with enemy's bounding box
     function check_enemy_collision; 
     input[15:0] enemy_pos_x;
     input[10:0] enemy_pos_y;
@@ -140,7 +131,7 @@ module player_controller(
                 (global_pos_x + `BLK_SIZE >= enemy_pos_x &&                    
                 global_pos_x + `BLK_SIZE < enemy_pos_x + `BLK_SIZE)) &&        
                                                                         
-                ((pos_y + 100 >= enemy_pos_y &&                         
+                ((pos_y + 100 >= enemy_pos_y &&                         //pos_y + 100 as player pos is 0 at the top border
                 pos_y + 100 < enemy_pos_y + `BLK_SIZE) ||               
                 (pos_y + `BLK_SIZE + 100 >= enemy_pos_y &&              
                 pos_y + `BLK_SIZE + 100 < enemy_pos_y + `BLK_SIZE))
@@ -149,34 +140,35 @@ module player_controller(
     endfunction
     
     
-    // ------------------------------ Get Player Input ------------------------------
+    // -------------------------------- Update events --------------------------------
+    //Check if player is standing on the ground to check they can jump
     reg grounded = 0;
     
-    //Check if standing on a collidable block
     always @ (posedge clk)  begin
         if(!rst) begin
-            grounded <= 0;
             eventstate <= 0;
         end
         else begin
+            //Check if tile below player is collidable
             grounded <= (
-                collision_map[(global_pos_x) >> 6][(pos_y + `BLK_SIZE + 5) >> 6] || 
+                collision_map[(global_pos_x) >> 6]               [(pos_y + `BLK_SIZE + 5) >> 6] || 
                 collision_map[(global_pos_x + `BLK_SIZE -1) >> 6][(pos_y + `BLK_SIZE + 5) >> 6]
             );
             
-            if (pos_y > `OFF_MAP_POS) //Fall off the map or ...
+            //Set event state to 1 (dead) if the player
+            if (pos_y > `OFF_MAP_POS)                                   //Falls off the map or ...
                 eventstate <= 1;
             else if  (
-                check_enemy_collision(enemy_1_pos_x, enemy_1_pos_y) ||
+                check_enemy_collision(enemy_1_pos_x, enemy_1_pos_y) || //Collides with enemy
                 check_enemy_collision(enemy_2_pos_x, enemy_2_pos_y)
-            ) //Collides with enemy
+            )                                               
                 eventstate <= 1;
                 
-                
-            else if (global_pos_x > `WIN_FLAG_POS ||
-                     sw == `SECRET_CODE)
+            //Set event state to 2 (won) if player
+            else if (global_pos_x > `WIN_FLAG_POS || //reaches the end
+                     sw == `SECRET_CODE)             //or if secret code is inputed
                 eventstate <= 2;
-            else 
+            else //Else state = 0
                 eventstate <= 0;
         end
     end
@@ -187,6 +179,7 @@ module player_controller(
         .clk(clk),
         .grounded(grounded),
         .btn(btn),
+        .z_accel(z_accel),
         .vel_x(vel_x),
         .vel_y(vel_y),
         .eventstate(eventstate),
@@ -195,29 +188,35 @@ module player_controller(
         .acc_y(acc_y)
     );
     
+    
+    // ------------------------------ Update player Positions ---------------------------------
+    //Reset counter for a timer after player dies before respawning
     reg [3:0] resetcounter = 0;
      
-     `define FIND_EDGE(pos) (pos & 16'b1111111111000000)
+    //Find edge of a tile by removing last 6 bits
+    `define FIND_EDGE(pos) (pos & 16'b1111111111000000)
      
     // --------------------------------- Update Y axis ---------------------------------
     always @ (posedge game_clk)  begin
-        if(!rst) 
+        if(!rst)  //Reset y position when pressed
             pos_y <= 100;
         else begin
-        if ( resetcounter == 5 && eventstate == 1) 
+        if ( resetcounter == 5 && eventstate == 1) //Reset y pos when repawned 
             pos_y <= 100;
-            
+        
+        //Stop pos y from overflowing when at screen boundary
         else if (vel_y < 0 && pos_y + vel_y - 64 > 1500) begin
             vel_y <= `GRAVITY;
             pos_y <= 1;
         end
         
+        // --------------------------- CHECK COLLISIONS ---------------------------
+        //Tile coordinates of the new position
         `define LEFT_CORNER  (global_pos_x) >> 6
         `define RIGHT_CORNER (global_pos_x + `BLK_SIZE-1) >> 6
         `define NEWPOS_DOWN  (pos_y + `BLK_SIZE + vel_y) >> 6
         `define NEWPOS_UP    (pos_y + vel_y - 64) >> 6
         
-        // --------------------------- CHECK COLLISIONS ---------------------------
         //If moving DOWN and next position overlaps with collidable block
         else if (vel_y > 0 && (
         collision_map[`LEFT_CORNER ][`NEWPOS_DOWN] || 
@@ -251,7 +250,7 @@ module player_controller(
            
             //Update position
             if (vel_y < 0)
-                //-64 to convert from 2s complement signed to unsigned
+                //-64 to convert from 2s complement signed to unsigned expression
                 pos_y <= pos_y + vel_y - 64;
             else 
                 pos_y <= pos_y + vel_y;
@@ -263,14 +262,19 @@ module player_controller(
     
     // --------------------------------- Update X axis ---------------------------------
     always @ (posedge game_clk)  begin
-        if(!rst) begin
+        if(!rst) begin //Reset position
             attempts <= 0;
             global_pos_x <= 300;
         end
         else begin
+        //If dead
         if (eventstate == 1) begin
+            //Iterate through respawn timer
             resetcounter <= resetcounter + 1;
+            
+            //After 5 game ticks
             if ( resetcounter == 5) begin
+                //Repawn and increment attempts
                 attempts <= attempts + 1;
                 global_pos_x <= 300;
                 resetcounter <= 0;
@@ -285,21 +289,21 @@ module player_controller(
             global_pos_x <= 1;
         end
         
-        
+        // --------------------------- CHECK COLLISIONS ---------------------------
+        //Tile coordinates of the new position
         `define NEWPOS_LEFT  (global_pos_x + vel_x - 64) >> 6
         `define NEWPOS_RIGHT (global_pos_x + `BLK_SIZE + vel_x) >> 6
         `define TOP_CORNER   (pos_y) >> 6
         `define BTM_CORNER   (pos_y + `BLK_SIZE - 1) >> 6
         
-        // --------------------------- CHECK COLLISIONS ---------------------------
         //If moving LEFT and next position overlaps with collidable block
         else if (vel_x < 0 && (
         collision_map[`NEWPOS_LEFT][`TOP_CORNER] || 
         collision_map[`NEWPOS_LEFT][`BTM_CORNER]
         )) begin
             //If player is going to collide, stop them 
+            //and set their position to the right of the block
             vel_x <= 0;
-            //Set their position to the right of the block that player collided with
             global_pos_x <= `FIND_EDGE(global_pos_x + vel_x) + 1;
         end
         
@@ -327,14 +331,11 @@ module player_controller(
             
             //Update position
             if (vel_x < 0)
-                //-64 to convert from 2s complement signed to unsigned
+                //-64 to convert from 2s complement signed for unsigned expression
                 global_pos_x <= global_pos_x + vel_x - 64; 
             else 
                 global_pos_x <= global_pos_x + vel_x;
         end
         end
     end
-    
-   
-    
 endmodule

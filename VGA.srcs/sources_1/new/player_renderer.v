@@ -41,39 +41,32 @@ module player_renderer(
         input [1:0] playerstate,
         input [1:0] eventstate
     );
-    reg [15:0] addr = 0; //15 bit address
-    reg [15:0] addrOffset = 0; //15 bit address
+    
+    //Setup address inputs and pixel outputs for player sprite
+    reg [15:0] addr = 0;
     wire [11:0] rom_pixel;
     
+    //Set up block memory instance
+    blk_mem_gen_0 player_sprites(.clka(clk), .addra(addr), .douta(rom_pixel));
     
-    blk_mem_gen_0 player_sprites
-    (
-    .clka(clk),
-    .addra(addr),
-    .douta(rom_pixel)   
-    );
-    
-    
+    //Setup address inputs and pixel outputs for win message sprite
     reg [16:0] winmsg_addr = 0; 
     wire [11:0]  winmsg_pixel;
     
-    
-    win_message_mem win_msg_sprite
-    (
-    .clka(clk),
-    .addra(winmsg_addr),
-    .douta(winmsg_pixel)   
-    );
+    //Set up block memory instance
+    win_message_mem win_msg_sprite (.clka(clk), .addra(winmsg_addr), .douta(winmsg_pixel));
     
     
-    
+    //Colour registers
     reg [3:0] blk_r, blk_g, blk_b;
     
+    //Convert global position to position on the screen
     wire [0:10] blkpos_x;
-    
     assign blkpos_x = playerpos_x - cam_x;
     
 
+    //Loop through memory offsets at each animation tick to move through each animation frame
+    reg [15:0] addrOffset = 0;
     always @ (posedge anim_clk) begin
         if (addrOffset < 3*`MEM_OFFSET) 
             addrOffset <= addrOffset + `MEM_OFFSET;
@@ -81,19 +74,13 @@ module player_renderer(
             addrOffset <= 0;
     end  
     
-    //Draw inside border
     always @ (posedge clk) begin
-        if (!rst) begin
-            blk_r <= 4'b0000;
-            blk_g <= 4'b0000;
-            blk_b <= 4'b0000;
-            addr <= 0;
-        end else if (
-            (curr_x >= blkpos_x) && 
+        if ( 
+            (curr_x >= blkpos_x) &&                 //Draw when within sprite bounds
             (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= playerpos_y) && 
             (curr_y < playerpos_y + `BLK_SIZE) &&
-            (curr_y > `BORDER_TOP) &&
+            (curr_y > `BORDER_TOP) &&               //And player is within play space
             (curr_y < `RESOLUTION_Y - `BORDER_BTM)
             ) begin
                 //set rgb to sprite
@@ -101,7 +88,7 @@ module player_renderer(
                 blk_g <= rom_pixel[7:4];
                 blk_b <= rom_pixel[3:0];
                 
-                //set address to 0 at start
+                //set address to 0 at start of sprite
                 if ((curr_x == blkpos_x) && (curr_y == playerpos_y))
                     addr <= addrOffset + (playerstate * 16'd16384);
                 //else increment
@@ -109,8 +96,8 @@ module player_renderer(
                     addr <= addr + 1;
                 
         end else if (
-        eventstate == 2 &&
-        curr_x >= `WINMSG_POS_X &&
+        eventstate == 2 &&                          //If player has won
+        curr_x >= `WINMSG_POS_X &&                  //And within message sprite
         curr_x < `WINMSG_POS_X + `WINMSG_WIDTH &&
         curr_y >= `WINMSG_POS_Y &&
         curr_y < `WINMSG_POS_Y + `WINMSG_HEIGHT
@@ -120,7 +107,7 @@ module player_renderer(
                 blk_g <= winmsg_pixel[7:4];
                 blk_b <= winmsg_pixel[3:0];
                 
-                //set address to 0 at start
+                //set address to 0 at start of sprite
                 if ((curr_x == `WINMSG_POS_X) && (curr_y == `WINMSG_POS_Y))
                     winmsg_addr <= 0;
                 //else increment
@@ -128,12 +115,15 @@ module player_renderer(
                     winmsg_addr <= winmsg_addr + 1;
         end
         else begin
+            //Set foreground to 0 if not drawing a sprite
+            //to allow for transparency
             blk_r <= 4'b0000;
             blk_g <= 4'b0000;
             blk_b <= 4'b0000;
         end
     end
     
+    //Output colour registers
     assign draw_r = blk_r;
     assign draw_g = blk_g;
     assign draw_b = blk_b;
