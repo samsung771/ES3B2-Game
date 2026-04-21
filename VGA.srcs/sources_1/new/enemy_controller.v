@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module enemy_controller(
+module enemy_controller
+#(ENEMYBOUND_RIGHT=0, ENEMYBOUND_LEFT=0, ENEMYPOS_Y=0) //Enemy parameters so module is reusable
+(
         input clk,
         input game_clk,
         input rst,
@@ -28,33 +30,39 @@ module enemy_controller(
         output [10:0] enemypos_y,
         output direction
     );
-    //3650 3965
-    `define ENEMYBOUND_LEFT 3650
-    `define ENEMYBOUND_RIGHT 3900
-    `define ENEMYPOS_Y 668
     
-    reg [15:0] pos_x = `ENEMYBOUND_RIGHT;
-    reg [10:0] pos_y = `ENEMYPOS_Y;
+    //Enemy position registers, x is global
+    reg [15:0] pos_x = ENEMYBOUND_RIGHT;
+    reg [10:0] pos_y = ENEMYPOS_Y;
     
+    //Output x and y positions
     assign enemypos_x = pos_x;
     assign enemypos_y = pos_y;
     
+    //Enemy movement direction for animations
     reg dir = 0;
     assign direction = dir;
     
+    //Every game tick
     always @ (posedge game_clk) begin
-        if (!rst) 
-            pos_x <= `ENEMYBOUND_LEFT;
+        if (!rst) //Reset position
+            pos_x <= ENEMYBOUND_LEFT;
         else begin
+            //When moving left
             if (dir) begin
-                if (pos_x >= `ENEMYBOUND_RIGHT)
+                //If hits boundary change direction
+                if (pos_x >= ENEMYBOUND_RIGHT)
                     dir <= 0;
+                //Else keep moving
                 else
                     pos_x <= pos_x + 5;
             end
+            //When moving right
             else begin
-                if (pos_x <= `ENEMYBOUND_LEFT)
+                //If hits boundary change direction
+                if (pos_x <= ENEMYBOUND_LEFT)
                     dir <= 1;
+                //Else keep moving
                 else
                     pos_x <= pos_x - 5;
             end

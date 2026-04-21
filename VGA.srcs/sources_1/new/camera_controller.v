@@ -29,7 +29,7 @@ module camera_controller(
         output [15:0] camerapos_x
     );
     
-    //Camera register to output
+    //Output camera register 
     reg [15:0] camerapos_x_reg = 0;
     assign camerapos_x = camerapos_x_reg;
     
@@ -50,5 +50,4 @@ module camera_controller(
                 camerapos_x_reg <= playerpos_x - `CAM_BOUND; 
         end 
     end
-    
 endmodule

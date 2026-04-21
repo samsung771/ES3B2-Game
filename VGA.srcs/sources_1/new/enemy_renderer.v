@@ -36,38 +36,36 @@ module enemy_renderer(
     );
     
     
+    //Setup address inputs and pixel outputs
     reg [13:0] addr = 0;
-    reg [13:0] addrOffset = 0;
     wire [11:0] rom_pixel;
     
-    blk_mem_gen_6 enemy_sprite
-    (
-    .clka(clk),
-    .addra(addr),
-    .douta(rom_pixel)   
-    );
+    //Set up block memory instance
+    blk_mem_gen_6 enemy_sprite (.clka(clk), .addra(addr), .douta(rom_pixel));
     
+    //Offset for position within sprite
+    reg [13:0] pixOffset = 0;
+    
+    //Colour registers
     reg [3:0] blk_r, blk_g, blk_b;
     
+    //Convert global position to position on the screen
     wire [15:0] blkpos_x;
-    
     assign blkpos_x = pos_x - cam_x;
     
+    //Loop through memory offsets at each animation tick to move through each animation frame
+    reg [13:0] animOffset = 0;
     always @ (posedge anim_clk) begin
-        if (addrOffset < `MEM_OFFSET) 
-            addrOffset <= addrOffset + `MEM_OFFSET;
+        if (animOffset < `MEM_OFFSET) 
+            animOffset <= animOffset + `MEM_OFFSET;
         else
-            addrOffset <= 0;
+            animOffset <= 0;
     end  
     
     always @ (posedge clk) begin
-        if (!rst) begin
-            blk_r <= 4'b0000;
-            blk_g <= 4'b0000;
-            blk_b <= 4'b0000;
-            addr <= 0;
-        end else if (
+        if (
             (pos_x > cam_x) &&
+            (pos_x + `BLK_SIZE < cam_x + `RESOLUTION_X) &&
             (curr_x >= blkpos_x) && 
             (curr_x < blkpos_x + `BLK_SIZE) &&
             (curr_y >= pos_y) && 
@@ -78,21 +76,23 @@ module enemy_renderer(
                 blk_g <= rom_pixel[7:4];
                 blk_b <= rom_pixel[3:0];
                 
-                //set address to 0 at start
-                if ((curr_x == blkpos_x) && (curr_y == pos_y))
-                    addr <= addrOffset + (enemydirection * 2 * `MEM_OFFSET);
-                //else increment
-                else
-                    addr <= addr + 1;
+                //Set position within sprite, +3 to account for memory latency
+                pixOffset <= (curr_x-blkpos_x) + ((curr_y-pos_y)*`BLK_SIZE) + 3;
+                
+                //Address = pixel in sprite + animation frame
+                //+ offset for the sprites direction
+                addr <= pixOffset + animOffset + (enemydirection * 2 * `MEM_OFFSET);
         end
         else begin
+            //Set foreground to 0 if not drawing a sprite
+            //to allow for transparency
             blk_r <= 4'b0000;
             blk_g <= 4'b0000;
             blk_b <= 4'b0000;
         end
     end 
             
-            
+    //Output colour registers
     assign draw_r = blk_r;
     assign draw_g = blk_g;
     assign draw_b = blk_b;

@@ -20,6 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 `define SMALL_SPRITE_OFFSET 1024
+`define SMALL_SPRITE_SIZE 32
 
 `define NUMBER_POS_X 1150
 `define NUMBER_POS_Y 45
@@ -39,38 +40,26 @@ module infobar_renderer(
 
     );
     
-    reg [17:0] bar_addr = 0; //18 bit address
+    //Setup address inputs and pixel outputs for each memory block
+    //Info bar
+    reg [17:0] bar_addr = 0; 
     wire [11:0] bar_pixel;
     
+    //Live counter sprite sheet 
     reg [13:0] num_addr = 0; 
     wire [11:0] num_pixel;
     
+    //Lives symbol animation sprite sheet
     reg [11:0] lives_addr = 0;
     wire [11:0] lives_pixel;
     
-    blk_mem_gen_3 bar_sprite
-    (
-    .clka(clk),
-    .addra(bar_addr),
-    .douta(bar_pixel)   
-    );
-    
-    blk_mem_gen_4 number_sprites
-    (
-    .clka(clk),
-    .addra(num_addr),
-    .douta(num_pixel)   
-    );
-    
-    blk_mem_gen_5 live_sprites
-    (
-    .clka(clk),
-    .addra(lives_addr),
-    .douta(lives_pixel)   
-    );
+    //Set up block memory instances
+    blk_mem_gen_3 bar_sprite        (.clka(clk), .addra(bar_addr), .douta(bar_pixel));
+    blk_mem_gen_4 number_sprites    (.clka(clk), .addra(num_addr), .douta(num_pixel));
+    blk_mem_gen_5 live_sprites      (.clka(clk), .addra(lives_addr), .douta(lives_pixel));
     
     
-    
+    //Loop through memory offsets at each animation tick to move through each animation frame
     reg [11:0] addrOffset = 0;
     always @ (posedge anim_clk) begin
         if (addrOffset < 3*`SMALL_SPRITE_OFFSET) 
@@ -79,48 +68,50 @@ module infobar_renderer(
             addrOffset <= 0;
     end  
     
+    //Foreground colour registers
     reg [3:0] fg_r, fg_g, fg_b;
     
+    //Macro for readability
+    //Returns true when current x and y positions are within the 
+    //sprite's bounding box
+    `define WITHIN_SPRITE(x,y) (             \
+        curr_x >= x &&                       \
+        curr_x <  x + `SMALL_SPRITE_SIZE &&  \
+        curr_y >= y &&                       \
+        curr_y <  y + `SMALL_SPRITE_SIZE     \
+        )
+    
     always @ (posedge clk) begin
-        if (!rst) begin
-            lives_addr <= 0;
-            num_addr <= 0;
-        end
-        else if (
-        curr_x >= `LIVES_POS_X &&
-        curr_x <  `LIVES_POS_X + 32 &&
-        curr_y >= `LIVES_POS_Y &&
-        curr_y <  `LIVES_POS_Y + 32
-        )begin
-            //set rgb to sprite
+        //Draw Lives symbol
+        if (`WITHIN_SPRITE(`LIVES_POS_X,`LIVES_POS_Y))begin
+            //set rgb to sprite memory
             fg_r <= lives_pixel[11:8];
             fg_g <= lives_pixel[7:4];
             fg_b <= lives_pixel[3:0];
             
+            //reset address when in the top left corner of the sprite
             if (curr_x == `LIVES_POS_X && curr_y == `LIVES_POS_Y)
                 lives_addr <= addrOffset;
-            
+            //else loop through each pixel
             else
                 lives_addr <= lives_addr + 1;
         end
-        else if (
-        curr_x >= `NUMBER_POS_X &&
-        curr_x <  `NUMBER_POS_X + 32 &&
-        curr_y >= `NUMBER_POS_Y &&
-        curr_y <  `NUMBER_POS_Y + 32
-        )begin
-            //set rgb to sprite
+        else if (`WITHIN_SPRITE(`NUMBER_POS_X,`NUMBER_POS_Y))begin
+            //set rgb to sprite memory
             fg_r <= num_pixel[11:8];
             fg_g <= num_pixel[7:4];
             fg_b <= num_pixel[3:0];
             
+            //reset address when in the top left corner of the sprite
             if (curr_x == `NUMBER_POS_X && curr_y == `NUMBER_POS_Y)
                 num_addr <= lives * `SMALL_SPRITE_OFFSET;
-            
+            //else loop through each pixel
             else
                 num_addr <= num_addr + 1;
         end
         else begin
+            //Set foreground to 0 if not drawing a sprite
+            //to allow for transparency
             fg_r <= 0;
             fg_g <= 0;
             fg_b <= 0;
@@ -128,27 +119,26 @@ module infobar_renderer(
     end    
         
             
-            
-            
-    
+    //Background colour registers
     reg [3:0] bar_r, bar_g, bar_b;
     
+    //Transparent when foreground colour = 000
     wire transparent = (fg_r != 0 || fg_g != 0 || fg_b != 0);
     
+    //Draw foreground over background sprite
     assign draw_r = transparent ? fg_r : bar_r;
     assign draw_g = transparent ? fg_g : bar_g;
     assign draw_b = transparent ? fg_b : bar_b;
     
     //Draw inside border
     always @ (posedge clk) begin
-        if (!rst)
-            bar_addr <= 0;
-        else if (curr_y <= `BORDER_TOP) begin
+        if (curr_y <= `BORDER_TOP) begin
                 //set rgb to sprite
                 bar_r <= bar_pixel[11:8];
                 bar_g <= bar_pixel[7:4];
                 bar_b <= bar_pixel[3:0];
                 
+                //Update address, + 6 to account for memory latency
                 bar_addr <= curr_x + (curr_y*`RESOLUTION_X) + 6;
                 
         end else begin

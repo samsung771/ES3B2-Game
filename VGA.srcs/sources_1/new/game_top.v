@@ -25,51 +25,61 @@
 module game_top(
     input clk,
     input rst,
-    input [2:0] sw,
+    input [15:0] sw,
     input [4:0] btn,
+    output [15:0] LED,
+    output [6:0] seg,
+    output [7:0] an,
     output [3:0] pix_r,
     output [3:0] pix_g,
     output [3:0] pix_b,
     output hsync,
-    output vsync
+    output vsync,
+    input ACL_MISO,
+    output ACL_MOSI,
+    output ACL_SCLK,
+    output ACL_CSN
     );
     
+    //106MHz clock for VGA drawing
     wire pixclk;
-        
-    wire [10:0] playerpos_x;
+    clk_wiz_0 pix ( .clk_out1(pixclk), .clk_in1(clk));
+    
+    //Player connections
+    wire [15:0] playerpos_x;
     wire [10:0] playerpos_y;
-    wire [15:0] camerapos_x;
-    wire [15:0] globalpos;
     wire [1:0] movestate;
     wire [1:0] eventstate;
     wire [3:0] lives;
+    wire [15:0] camerapos_x;
     
+    //Enemy 1 wires
+    wire [15:0] enemy_1_pos_x;
+    wire [10:0] enemy_1_pos_y;
+    wire enemy_1_direction;
     
-    wire [15:0] enemypos_x;
-    wire [10:0] enemypos_y;
-    wire enemydirection;
+    //Enemy 2 wires
+    wire [15:0] enemy_2_pos_x;
+    wire [10:0] enemy_2_pos_y;
+    wire enemy_2_direction;
     
-    clk_wiz_0 pix (
-    .clk_out1(pixclk),
-    .clk_in1(clk)
-    );
-    
+    //Accellerometer output
+    wire signed [7:0] z_accel;
     
       
-    // ----------------------------- Level Memory Setup ----------------------------- 
-    //Memory address for tiled level
+    //Level Memory Setup
+    //Dual port as its needed by both level renderer and for collisions
+    
+    //Memory address and tile output for level collisions
     wire [9:0] collision_addr;
-    //Tile ID from level memory
     wire [7:0] collision_tile;
     
-    //Memory address for tiled level
+    //Memory address and tile output for level renderer
     wire [9:0] draw_addr;
-    //Tile ID from level memory
     wire [7:0] draw_tile;
     
     //Level data memory block
-    blk_mem_gen_2 level
-    (
+    blk_mem_gen_2 level (
         .clka(pixclk),
         .addra(draw_addr),
         .douta(draw_tile),  
@@ -79,19 +89,15 @@ module game_top(
     );
     
     
-    //60Hz game clock for position updates
+    //30Hz game tick clock for position updates
     wire game_clk;
-    
-    game_clk_div (
-        .clk(clk),
-        .game_clk(game_clk)
-    );
+    game_clk_div ( .clk(clk), .game_clk(game_clk));
     
     
     camera_controller camera_inst (
         .clk(clk),
         .rst(rst),
-        .playerpos_x(globalpos),
+        .playerpos_x(playerpos_x),
         .camerapos_x(camerapos_x)
     );
     
@@ -100,28 +106,53 @@ module game_top(
         .game_clk(game_clk),
         .rst(rst),
         .btn(btn),
+        .sw(sw),
+        .LED(LED),
+        .z_accel(z_accel),
         .cam_x(camerapos_x),
         .playerpos_x(playerpos_x),
         .playerpos_y(playerpos_y),
-        .globalpos(globalpos),
         .movestate(movestate),
         .playerstate(eventstate),
         .memory_addr(collision_addr),
         .tile(collision_tile),
         .lives(lives),
-        .enemypos_x(enemypos_x),
-        .enemypos_y(enemypos_y)
+        .enemy_1_pos_x(enemy_1_pos_x),
+        .enemy_1_pos_y(enemy_1_pos_y),
+        .enemy_2_pos_x(enemy_2_pos_x),
+        .enemy_2_pos_y(enemy_2_pos_y)
     );
     
-    enemy_controller enemy_inst (
+    
+    //Enemy instances with their parameters
+    enemy_controller #( `ENEMY_1_BOUND_RIGHT, 
+                        `ENEMY_1_BOUND_LEFT, 
+                        `ENEMY_1_POS_Y) 
+    enemy_1_inst (
         .clk(clk),
         .game_clk(game_clk),
         .rst(rst),
-        .enemypos_x(enemypos_x),
-        .enemypos_y(enemypos_y),
-        .direction(enemydirection)
+        .enemypos_x(enemy_1_pos_x),
+        .enemypos_y(enemy_1_pos_y),
+        .direction(enemy_1_direction)
     );
     
+    enemy_controller #( `ENEMY_2_BOUND_RIGHT, 
+                        `ENEMY_2_BOUND_LEFT, 
+                        `ENEMY_2_POS_Y) 
+    enemy_2_inst (
+        .clk(clk),
+        .game_clk(game_clk),
+        .rst(rst),
+        .enemypos_x(enemy_2_pos_x),
+        .enemypos_y(enemy_2_pos_y),
+        .direction(enemy_2_direction)
+    );
+    
+    
+    // ----------------------------- Renderer ----------------------------- 
+    
+    //VGA display connections
     wire [3:0] draw_r;
     wire [3:0] draw_g;
     wire [3:0] draw_b;
@@ -138,18 +169,22 @@ module game_top(
         .draw_r(draw_r),
         .draw_g(draw_g),
         .draw_b(draw_b),
-        .playerpos_x(globalpos),
+        .playerpos_x(playerpos_x),
         .playerpos_y(playerpos_y),
         .playerstate(movestate),
         .eventstate(eventstate),
         .memory_addr(draw_addr),
         .tile(draw_tile),
         .lives(lives),
-        .enemypos_x(enemypos_x),
-        .enemypos_y(enemypos_y),
-        .enemydirection(enemydirection)
+        .enemy_1_pos_x(enemy_1_pos_x),
+        .enemy_1_pos_y(enemy_1_pos_y),
+        .enemy_1_direction(enemy_1_direction),
+        .enemy_2_pos_x(enemy_2_pos_x),
+        .enemy_2_pos_y(enemy_2_pos_y),
+        .enemy_2_direction(enemy_2_direction)
         );
-
+    
+    //VGA interface
     vga_out vga_inst( 
         .clk(pixclk),
         .rst(rst),
@@ -164,4 +199,25 @@ module game_top(
         .hsync(hsync),
         .vsync(vsync)
         );
+    
+    // ------------------------------- IO Handlers ------------------------------- 
+    //Acellerometer SPI interface
+    accellerometer_controller accellerometer_inst (
+        .clk(clk),
+        .ACL_MISO(ACL_MISO),
+        .ACL_MOSI(ACL_MOSI),
+        .ACL_SCLK(ACL_SCLK),
+        .ACL_CSN(ACL_CSN),
+        .data_out(z_accel)
+    );
+    
+    //7 Segment timer
+    timer timer_inst (
+    .clk(clk),
+    .rst(rst),
+    .eventstate(eventstate),
+    .seg(seg),
+    .an(an)
+    );
+    
 endmodule
